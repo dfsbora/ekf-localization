@@ -111,8 +111,7 @@ class ExtendedKalmanFilter(object):
         self.P_post = self.P.copy()
 
 
-    def update(self, z, HJacobian, Hx, R=None, args=(), hx_args=(),
-               residual=np.subtract):
+    def update(self, z, HJacobian, Hx, R=None, args=(), hx_args=(), residual=np.subtract):
         """ Performs the update innovation of the extended Kalman filter.
 
         Parameters
