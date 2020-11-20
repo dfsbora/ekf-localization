@@ -1,20 +1,7 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=invalid-name,too-many-instance-attributes, too-many-arguments
-
-
 """Copyright 2015 Roger R Labbe Jr.
-
 FilterPy library.
-http://github.com/rlabbe/filterpy
-
-Documentation at:
-https://filterpy.readthedocs.org
-
-Supporting book at:
-https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python
-
-This is licensed under an MIT license. See the readme.MD file
-for more information.
+This is licensed under an MIT license.
 """
 
 from __future__ import (absolute_import, division, unicode_literals)
@@ -25,38 +12,21 @@ import sys
 import numpy as np
 from numpy import dot, zeros, eye
 import scipy.linalg as linalg
-from filterpy.stats import logpdf
-from filterpy.common import reshape_z
+from reshape_z import reshape_z
 
 
 class ExtendedKalmanFilter(object):
 
-    """ Implements an extended Kalman filter (EKF). You are responsible for
-    setting the various state variables to reasonable values; the defaults
-    will  not give you a functional filter.
-
-    You will have to set the following attributes after constructing this
-    object for the filter to perform properly. Please note that there are
-    various checks in place to ensure that you have made everything the
-    'correct' size. However, it is possible to provide incorrectly sized
-    arrays such that the linear algebra can not perform an operation.
-    It can also fail silently - you can end up with matrices of a size that
-    allows the linear algebra to work, but are the wrong shape for the problem
-    you are trying to solve.
+    """ Implements an extended Kalman filter (EKF). 
 
     Parameters
     ----------
 
     dim_x : int
-        Number of state variables for the Kalman filter. For example, if
-        you are tracking the position and velocity of an object in two
-        dimensions, dim_x would be 4.
-
-        This is used to set the default size of P, Q, and u
+        Number of state variables for the Kalman filter. 
 
     dim_z : int
-        Number of of measurement inputs. For example, if the sensor
-        provides you with position in (x,y), dim_z would be 2.
+        Number of of measurement inputs.
 
     Attributes
     ----------
@@ -67,9 +37,7 @@ class ExtendedKalmanFilter(object):
         Covariance matrix
 
     x_prior : numpy.array(dim_x, 1)
-        Prior (predicted) state estimate. The *_prior and *_post attributes
-        are for convienence; they store the  prior and posterior of the
-        current epoch. Read Only.
+        Prior (predicted) state estimate. 
 
     P_prior : numpy.array(dim_x, dim_x)
         Prior (predicted) state covariance matrix. Read Only.
@@ -104,29 +72,6 @@ class ExtendedKalmanFilter(object):
     z : ndarray
         Last measurement used in update(). Read only.
 
-    log_likelihood : float
-        log-likelihood of the last measurement. Read only.
-
-    likelihood : float
-        likelihood of last measurment. Read only.
-
-        Computed from the log-likelihood. The log-likelihood can be very
-        small,  meaning a large negative value such as -28000. Taking the
-        exp() of that results in 0.0, which can break typical algorithms
-        which multiply by this value, so by default we always return a
-        number >= sys.float_info.min.
-
-    mahalanobis : float
-        mahalanobis distance of the innovation. E.g. 3 means measurement
-        was 3 standard deviations away from the predicted value.
-
-        Read only.
-
-    Examples
-    --------
-
-    See my book Kalman and Bayesian Filters in Python
-    https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python
     """
 
     def __init__(self, dim_x, dim_z, dim_u=0):
@@ -157,10 +102,6 @@ class ExtendedKalmanFilter(object):
         # identity matrix. Do not alter this.
         self._I = np.eye(dim_x)
 
-        self._log_likelihood = log(sys.float_info.min)
-        self._likelihood = sys.float_info.min
-        self._mahalanobis = None
-
         # these will always be a copy of x,P after predict() is called
         self.x_prior = self.x.copy()
         self.P_prior = self.P.copy()
@@ -169,87 +110,6 @@ class ExtendedKalmanFilter(object):
         self.x_post = self.x.copy()
         self.P_post = self.P.copy()
 
-    def predict_update(self, z, HJacobian, Hx, args=(), hx_args=(), u=0):
-        """ Performs the predict/update innovation of the extended Kalman
-        filter.
-
-        Parameters
-        ----------
-
-        z : np.array
-            measurement for this step.
-            If `None`, only predict step is perfomed.
-
-        HJacobian : function
-           function which computes the Jacobian of the H matrix (measurement
-           function). Takes state variable (self.x) as input, along with the
-           optional arguments in args, and returns H.
-
-        Hx : function
-            function which takes as input the state variable (self.x) along
-            with the optional arguments in hx_args, and returns the measurement
-            that would correspond to that state.
-
-        args : tuple, optional, default (,)
-            arguments to be passed into HJacobian after the required state
-            variable.
-
-        hx_args : tuple, optional, default (,)
-            arguments to be passed into Hx after the required state
-            variable.
-
-        u : np.array or scalar
-            optional control vector input to the filter.
-        """
-        #pylint: disable=too-many-locals
-
-        if not isinstance(args, tuple):
-            args = (args,)
-
-        if not isinstance(hx_args, tuple):
-            hx_args = (hx_args,)
-
-        if np.isscalar(z) and self.dim_z == 1:
-            z = np.asarray([z], float)
-
-        F = self.F
-        B = self.B
-        P = self.P
-        Q = self.Q
-        R = self.R
-        x = self.x
-
-        H = HJacobian(x, *args)
-
-        # predict step
-        x = dot(F, x) + dot(B, u)
-        P = dot(F, P).dot(F.T) + Q
-
-        # save prior
-        self.x_prior = np.copy(self.x)
-        self.P_prior = np.copy(self.P)
-
-        # update step
-        PHT = dot(P, H.T)
-        self.S = dot(H, PHT) + R
-        self.SI = linalg.inv(self.S)
-        self.K = dot(PHT, self.SI)
-
-        self.y = z - Hx(x, *hx_args)
-        self.x = x + dot(self.K, self.y)
-
-        I_KH = self._I - dot(self.K, H)
-        self.P = dot(I_KH, P).dot(I_KH.T) + dot(self.K, R).dot(self.K.T)
-
-        # save measurement and posterior state
-        self.z = deepcopy(z)
-        self.x_post = self.x.copy()
-        self.P_post = self.P.copy()
-
-        # set to None to force recompute
-        self._log_likelihood = None
-        self._likelihood = None
-        self._mahalanobis = None
 
     def update(self, z, HJacobian, Hx, R=None, args=(), hx_args=(),
                residual=np.subtract):
@@ -331,11 +191,6 @@ class ExtendedKalmanFilter(object):
         I_KH = self._I - dot(self.K, H)
         self.P = dot(I_KH, self.P).dot(I_KH.T) + dot(self.K, R).dot(self.K.T)
 
-        # set to None to force recompute
-        self._log_likelihood = None
-        self._likelihood = None
-        self._mahalanobis = None
-
         # save measurement and posterior state
         self.z = deepcopy(z)
         self.x_post = self.x.copy()
@@ -359,8 +214,7 @@ class ExtendedKalmanFilter(object):
         ----------
 
         u : np.array
-            Optional control vector. If non-zero, it is multiplied by B
-            to create the control input into the system.
+            Optional control vector. 
         """
 
         self.predict_x(u)
@@ -370,41 +224,3 @@ class ExtendedKalmanFilter(object):
         self.x_prior = np.copy(self.x)
         self.P_prior = np.copy(self.P)
 
-    @property
-    def log_likelihood(self):
-        """
-        log-likelihood of the last measurement.
-        """
-
-        if self._log_likelihood is None:
-            self._log_likelihood = logpdf(x=self.y, cov=self.S)
-        return self._log_likelihood
-
-    @property
-    def likelihood(self):
-        """
-        Computed from the log-likelihood. The log-likelihood can be very
-        small,  meaning a large negative value such as -28000. Taking the
-        exp() of that results in 0.0, which can break typical algorithms
-        which multiply by this value, so by default we always return a
-        number >= sys.float_info.min.
-        """
-        if self._likelihood is None:
-            self._likelihood = exp(self.log_likelihood)
-            if self._likelihood == 0:
-                self._likelihood = sys.float_info.min
-        return self._likelihood
-
-    @property
-    def mahalanobis(self):
-        """
-        Mahalanobis distance of innovation. E.g. 3 means measurement
-        was 3 standard deviations away from the predicted value.
-
-        Returns
-        -------
-        mahalanobis : float
-        """
-        if self._mahalanobis is None:
-            self._mahalanobis = sqrt(float(dot(dot(self.y.T, self.SI), self.y)))
-        return self._mahalanobis
