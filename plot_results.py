@@ -217,7 +217,6 @@ title1='Filter result', title2='Filter result', title3='Variance', title4='Varia
 	#plt.savefig('plot.png')
 	plt.show()
 
-
 #Plot covariance ellipses: centers and contours
 def plotCovarianceXY(estimate, variance, xIndex, yIndex, sigmaRegion=1, xlabel='', ylabel=''):
 	#fig = plt.figure()
@@ -287,7 +286,6 @@ def plotCovarianceEllipse0(ax, estimate, variance, xIndex, yIndex, sigmaRegion=1
 		ell.set_alpha(np.random.rand())
 		ell.set_facecolor(np.random.rand(3))
 		
-
 def plotEllipse0(ax, state, variance, xIndex=0, yIndex=1, sigmaRegion=1):
 	#Loop over estimate and variance to plot all covariance ellipses
 	#ax = plt.gca()
@@ -332,7 +330,6 @@ def plotEllipse0(ax, state, variance, xIndex=0, yIndex=1, sigmaRegion=1):
 	ell.set_alpha(np.random.rand())
 	ell.set_facecolor(np.random.rand(3))
 
-
 #Plot ellipses using transforms
 def plotEllipse(ax, state, variance, xIndex=0, yIndex=1, sigmaRegion=6, facecolor='g', alpha=0.8):
 	#Loop over estimate and variance to plot all covariance ellipses
@@ -370,7 +367,6 @@ def plotEllipse(ax, state, variance, xIndex=0, yIndex=1, sigmaRegion=6, facecolo
 	ell.set_alpha(alpha)
 	ell.set_facecolor(facecolor)
 
-
 #Plot ellipses using transforms
 def plotCovarianceEllipse(ax, estimate, variance, xIndex, yIndex, sigmaRegion=1):
 	#Loop over estimate and variance to plot all covariance ellipses
@@ -407,7 +403,6 @@ def plotCovarianceEllipse(ax, estimate, variance, xIndex, yIndex, sigmaRegion=1)
 		ell.set_alpha(np.random.rand())
 		ell.set_facecolor(np.random.rand(3))
 
-
 #Plot ellipses using transforms
 def plot_ellipse(ax, state, variance, xIndex=0, yIndex=1, sigmaRegion=3, facecolor='g', alpha=0.8):
 	#Loop over estimate and variance to plot all covariance ellipses
@@ -426,9 +421,6 @@ def plot_ellipse(ax, state, variance, xIndex=0, yIndex=1, sigmaRegion=3, facecol
 	ell.set_clip_box(ax.bbox)
 	ell.set_alpha(alpha)
 	ell.set_facecolor(facecolor)
-
-
-
 
 def covariance_ellipse(P, deviations=1):
 	"""
