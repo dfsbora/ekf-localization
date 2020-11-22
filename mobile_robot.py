@@ -45,11 +45,6 @@ def z_landmark(lmark, sim_pos, std_rng, std_brg):
                   [a + randn()*std_brg]])
     return z
 
-#UPDATE LEVAR PARA MAIN E LIMPAR DAQUI PARA FACILITAR COMPREENSÃO
-def ekf_update(ekf, z, landmark):
-    ekf.update(z, HJacobian=H_of, Hx=Hx, 
-               residual=residual,
-               args=(landmark), hx_args=(landmark))
 
 dt = 1.0
 
@@ -89,9 +84,7 @@ def run_localization(landmarks, std_vel, std_steer,
             x, y = sim_pos[0, 0], sim_pos[1, 0]
             for lmark in landmarks:
                 z = z_landmark(lmark, sim_pos, std_range, std_bearing)
-                ekf_update(ekf, z, lmark)
-                #UPDATE: A LINHA DE BAIXO É A DEFINIÇAO DA DE CIMA
-                #ekf.update(z, HJacobian=H_of, Hx=Hx, residual=residual, args=(landmark), hx_args=(landmark))
+                ekf.update(z, HJacobian=H_of, Hx=Hx, residual=residual, args=(landmark), hx_args=(landmark))
 
             if i % ellipse_step == 0:
             	plot_ellipse(ax, (ekf.x[0,0],ekf.x[1,0]), ekf.P[0:2,0:2])
