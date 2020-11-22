@@ -5,9 +5,9 @@ import numpy as np
 from sympy.abc import alpha, x, y, v, w, R, theta
 from sympy import symbols, Matrix, evalf
 import sympy
+from numpy.random import rand
 
 class RobotEKF(EKF):
-    #UPDATE corrigir inicializacao 
     def __init__(self, dt):
         EKF.__init__(self, 6, 3)  #(self, dim_x, dim_z,  dim_u=0)
         self.dt = dt # predict period
@@ -66,22 +66,16 @@ class RobotEKF(EKF):
     #     self.P = FPFT + self.Q
     #     #self.P = FPFT + VMVT
 
-    #UPDATE move
-    def move(self, x, u, dt):
-        hdg = x[2, 0]
-        vel = u[0]
-        steering_angle = u[1]
-        dist = vel * dt
 
-        if abs(steering_angle) > 0.001: # is robot turning?
-            beta = (dist / self.wheelbase) * tan(steering_angle)
-            r = self.wheelbase / tan(steering_angle) # radius
+    def move(self, x, dt):
+        change = np.array(
+            [[1, dt, 0, 0, 0, 0],
+             [0,1,0,0,0,0],
+             [0,0,1,dt,0,0],
+             [0,0,0,1,0,0],
+             [0,0,0,0,1,dt],
+             [0,0,0,0,0,1]])
 
-            dx = np.array([[-r*sin(hdg) + r*sin(hdg + beta)], 
-                           [r*cos(hdg) - r*cos(hdg + beta)], 
-                           [beta]])
-        else: # moving in straight line
-            dx = np.array([[dist*cos(hdg)], 
-                           [dist*sin(hdg)], 
-                           [0]])
+        dx = dot(change, x) + rand(6,1)*0.2  #generates data
+
         return x + dx
