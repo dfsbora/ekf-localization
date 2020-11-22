@@ -36,7 +36,7 @@ def Hx(x, landmark_pos):
     return Hx
 
 
-#UPDATE MEDIDAS , AQUI ENTRAM OS DADOS DA CÂMERA
+#UPDATE MEDIDAS , AQUI ENTRAM OS DADOS DA CAMERA
 def z_landmark(lmark, sim_pos, std_rng, std_brg):
     x, y = sim_pos[0, 0], sim_pos[1, 0]
     d = np.sqrt((lmark[0] - x)**2 + (lmark[1] - y)**2)  
@@ -83,7 +83,10 @@ def run_localization(landmarks, std_vel, std_steer,
             x, y = sim_pos[0, 0], sim_pos[1, 0]
             for lmark in landmarks:
                 z = z_landmark(lmark, sim_pos, std_range, std_bearing)
-                ekf.update(z, HJacobian=H_of, Hx=Hx, residual=residual, args=(landmark), hx_args=(landmark))
+                ekf.update(z, HJacobian=H_of, Hx=Hx, residual=residual, args=(lmark), hx_args=(lmark))
+
+
+
 
             if i % ellipse_step == 0:
             	plot_ellipse(ax, (ekf.x[0,0],ekf.x[2,0]), ekf.P[0:3,0:3], xIndex=0, yIndex=2)
