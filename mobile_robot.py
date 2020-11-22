@@ -5,7 +5,7 @@ from numpy.random import randn
 from math import sin, cos, tan, sqrt, atan2
 import matplotlib.pyplot as plt
 import numpy as np
-from robotEKF import RobotEKF
+from robotEKF2 import RobotEKF
 from plot_results import plot_ellipse
 
 def residual(a, b):
@@ -84,9 +84,6 @@ def run_localization(landmarks, std_vel, std_steer,
             for lmark in landmarks:
                 z = z_landmark(lmark, sim_pos, std_range, std_bearing)
                 ekf.update(z, HJacobian=H_of, Hx=Hx, residual=residual, args=(lmark), hx_args=(lmark))
-
-
-
 
             if i % ellipse_step == 0:
             	plot_ellipse(ax, (ekf.x[0,0],ekf.x[2,0]), ekf.P[0:3,0:3], xIndex=0, yIndex=2)

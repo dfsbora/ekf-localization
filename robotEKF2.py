@@ -10,45 +10,61 @@ class RobotEKF(EKF):
     #UPDATE corrigir inicializacao 
     def __init__(self, dt):
         EKF.__init__(self, 6, 3, 0.1)  #(self, dim_x, dim_z, dt, dim_u=0)
-        self.dt = dt
+        self.dt = dt # predict period
 
-        x, y, theta, x_vel, y_vel, theta_vel, time = symbols('x, y, theta, x_vel, y_vel, theta_vel')
+        #x, y, theta, x_vel, y_vel, theta_vel, time = symbols('x, y, theta, x_vel, y_vel, theta_vel')
 
-        self.fxu = Matrix(
-            [[time*x_vel],
-             [0],
-             [time*y_vel],
-             [0],
-             [time*theta_vel],
-             [0]])
+        self.F = np.array(
+            [[1, dt, 0, 0, 0, 0],
+             [0,1,0,0,0,0],
+             [0,0,1,dt,0,0],
+             [0,0,0,1,0,0],
+             [0,0,0,0,1,dt],
+             [0,0,0,0,0,1]])
 
-        self.F_j = self.fxu.jacobian(Matrix([x, y, theta]))
+        # self.fxu = Matrix(
+        #     [[time*x_vel],
+        #      [0],
+        #      [time*y_vel],
+        #      [0],
+        #      [time*theta_vel],
+        #      [0]])
+
+        #self.F_j = self.fxu.jacobian(Matrix([x, y, theta]))
         #self.V_j = self.fxu.jacobian(Matrix([v, a]))
 
         # save dictionary and it's variables for later use
-        self.subs = {x_vel: 0, y_vel: 0, time:0.,  theta_vel:0}
+        #self.subs = {x_vel: 0, y_vel: 0, time:0.,  theta_vel:0}
         #self.x_x, self.x_y, = x, y 
         #self.theta =  theta
 
-    def predict(self, u):
-        self.x = self.move(self.x, u, self.dt)
+    # def predict(self, u):
+    #     self.x = self.move(self.x, u, self.dt)
 
-        self.subs[self.x_vel] = self.x[1, 0]
-        self.subs[self.y_vel] = self.x[3,0]
-        self.subs[self.theta_vel] = self.x[5,0]
-        self.subs[self.time] = self.dt
+    #     # self.subs[self.x_vel] = self.x[1, 0]
+    #     # self.subs[self.y_vel] = self.x[3,0]
+    #     # self.subs[self.theta_vel] = self.x[5,0]
+    #     # self.subs[self.time] = self.dt
 
-        F = array(self.F_j.evalf(subs=self.subs)).astype(float)
-        #V = array(self.V_j.evalf(subs=self.subs)).astype(float)
+    #     self.F = np.array(
+    #         [[1, dt, 0, 0, 0, 0],
+    #          [0,1,0,0,0,0],
+    #          [0,0,1,dt,0,0],
+    #          [0,0,0,1,0,0],
+    #          [0,0,0,0,1,dt],
+    #          [0,0,0,0,0,1]])
 
-        # covariance of motion noise in control space
-        #M = array([[self.std_vel*u[0]**2, 0], 
-        #           [0, self.std_steer**2]])
+    #     #F = array(self.F_j.evalf(subs=self.subs)).astype(float)
+    #     #V = array(self.V_j.evalf(subs=self.subs)).astype(float)
 
-        #VMVT = dot(V,M).dot(V.T)
-        FPFT = dot(F,self.P).dot(F.T)
-        self.P = FPFT + self.Q
-        #self.P = FPFT + VMVT
+    #     # covariance of motion noise in control space
+    #     #M = array([[self.std_vel*u[0]**2, 0], 
+    #     #           [0, self.std_steer**2]])
+
+    #     #VMVT = dot(V,M).dot(V.T)
+    #     FPFT = dot(F,self.P).dot(F.T)
+    #     self.P = FPFT + self.Q
+    #     #self.P = FPFT + VMVT
 
     #UPDATE move
     def move(self, x, u, dt):
