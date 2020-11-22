@@ -1,4 +1,4 @@
-from EKF import ExtendedKalmanFilter as EKF
+from EKF2 import ExtendedKalmanFilter as EKF
 from numpy import array, sqrt, dot
 from numpy import sin, cos, tan
 import numpy as np
@@ -22,17 +22,14 @@ class RobotEKF(EKF):
              [time*theta_vel],
              [0]])
 
-        #UPDATE JACOBIANS FAZER NA MAO SEM SYMPY
         self.F_j = self.fxu.jacobian(Matrix([x, y, theta]))
         #self.V_j = self.fxu.jacobian(Matrix([v, a]))
 
-        #UPDATE RETIRAR SUBS E TODAS AS OUTRAS REFERÊNCIAS
         # save dictionary and it's variables for later use
         self.subs = {x_vel: 0, y_vel: 0, time:0.,  theta_vel:0}
         #self.x_x, self.x_y, = x, y 
         #self.theta =  theta
 
-    #UPDATE COMENTAR ESSA FUNCAO, NAO SERA USADA INICIALMENTE
     def predict(self, u):
         self.x = self.move(self.x, u, self.dt)
 
@@ -53,7 +50,7 @@ class RobotEKF(EKF):
         self.P = FPFT + self.Q
         #self.P = FPFT + VMVT
 
-
+    #UPDATE move
     def move(self, x, u, dt):
         hdg = x[2, 0]
         vel = u[0]

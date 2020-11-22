@@ -75,7 +75,6 @@ class ExtendedKalmanFilter(object):
     """
 
     def __init__(self, dim_x, dim_z, dt, dim_u=0):
-        self.dt = dt
         self.dim_x = dim_x
         self.dim_z = dim_z
         self.dim_u = dim_u
