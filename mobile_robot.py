@@ -78,8 +78,7 @@ def run_localization(landmarks, std_vel, std_steer,
 
             if i % ellipse_step == 0:
             	ax = plt.gca()
-                #UPDATE CORRIGIR PARA X0 E X2, NOS DEMAIS PLOTS TAMBEM
-            	plot_ellipse(ax, (ekf.x[0,0],ekf.x[1,0]), ekf.P[0:2,0:2], facecolor='k', alpha=0.3)
+            	plot_ellipse(ax, (ekf.x[0,0],ekf.x[2,0]), ekf.P[0:3,0:3], xIndex=0, yIndex=2, facecolor='k', alpha=0.3)
 
             x, y = sim_pos[0, 0], sim_pos[1, 0]
             for lmark in landmarks:
@@ -87,7 +86,7 @@ def run_localization(landmarks, std_vel, std_steer,
                 ekf.update(z, HJacobian=H_of, Hx=Hx, residual=residual, args=(landmark), hx_args=(landmark))
 
             if i % ellipse_step == 0:
-            	plot_ellipse(ax, (ekf.x[0,0],ekf.x[1,0]), ekf.P[0:2,0:2])
+            	plot_ellipse(ax, (ekf.x[0,0],ekf.x[2,0]), ekf.P[0:3,0:3], xIndex=0, yIndex=2)
     track = np.array(track)
     plt.plot(track[:, 0], track[:,1], color='k', lw=2)
     plt.axis('equal')
