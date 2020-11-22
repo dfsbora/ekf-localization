@@ -9,7 +9,7 @@ import sympy
 class RobotEKF(EKF):
     #UPDATE corrigir inicializacao 
     def __init__(self, dt):
-        EKF.__init__(self, 6, 3, 0.1)  #(self, dim_x, dim_z, dt, dim_u=0)
+        EKF.__init__(self, 6, 3)  #(self, dim_x, dim_z,  dim_u=0)
         self.dt = dt # predict period
 
         #x, y, theta, x_vel, y_vel, theta_vel, time = symbols('x, y, theta, x_vel, y_vel, theta_vel')
