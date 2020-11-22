@@ -8,46 +8,41 @@ import sympy
 
 class RobotEKF(EKF):
     #UPDATE corrigir inicializacao 
-    def __init__(self, dt, wheelbase, std_vel, std_steer):
-        EKF.__init__(self, 3, 2, 2)
+    def __init__(self, dt):
+        EKF.__init__(self, 6, 3, 0.1)  #(self, dim_x, dim_z, dt, dim_u=0)
         self.dt = dt
-        self.wheelbase = wheelbase
-        self.std_vel = std_vel
-        self.std_steer = std_steer
 
-        a, x, y, v, w, theta, time = symbols(
-            'a, x, y, v, w, theta, t')
-        d = v*time
-        beta = (d/w)*sympy.tan(a)
-        r = w/sympy.tan(a)
-    
-        #UPDATE F
+        x, y, theta, x_vel, y_vel, theta_vel, time = symbols('x, y, theta, x_vel, y_vel, theta_vel')
+
         self.fxu = Matrix(
-            [[x-r*sympy.sin(theta)+r*sympy.sin(theta+beta)],
-             [y+r*sympy.cos(theta)-r*sympy.cos(theta+beta)],
-             [theta+beta]])
+            [[time*x_vel],
+             [0],
+             [time*y_vel],
+             [0],
+             [time*theta_vel],
+             [0]])
 
         #UPDATE JACOBIANS FAZER NA MAO SEM SYMPY
         self.F_j = self.fxu.jacobian(Matrix([x, y, theta]))
-        self.V_j = self.fxu.jacobian(Matrix([v, a]))
+        #self.V_j = self.fxu.jacobian(Matrix([v, a]))
 
         #UPDATE RETIRAR SUBS E TODAS AS OUTRAS REFERÊNCIAS
         # save dictionary and it's variables for later use
-        self.subs = {x: 0, y: 0, v:0, a:0, 
-                     time:dt, w:wheelbase, theta:0}
-        self.x_x, self.x_y, = x, y 
-        self.v, self.a, self.theta = v, a, theta
+        self.subs = {x_vel: 0, y_vel: 0, time:0.,  theta_vel:0}
+        #self.x_x, self.x_y, = x, y 
+        #self.theta =  theta
 
     #UPDATE COMENTAR ESSA FUNCAO, NAO SERA USADA INICIALMENTE
     def predict(self, u):
         self.x = self.move(self.x, u, self.dt)
 
-        self.subs[self.theta] = self.x[2, 0]
-        self.subs[self.v] = u[0]
-        self.subs[self.a] = u[1]
+        self.subs[self.x_vel] = self.x[1, 0]
+        self.subs[self.y_vel] = self.x[3,0]
+        self.subs[self.theta_vel] = self.x[5,0]
+        self.subs[self.time] = self.dt
 
         F = array(self.F_j.evalf(subs=self.subs)).astype(float)
-        V = array(self.V_j.evalf(subs=self.subs)).astype(float)
+        #V = array(self.V_j.evalf(subs=self.subs)).astype(float)
 
         # covariance of motion noise in control space
         M = array([[self.std_vel*u[0]**2, 0], 
