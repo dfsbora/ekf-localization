@@ -15,25 +15,18 @@ def residual(a, b):
         y[1] -= 2 * np.pi
     return y
 
-#UPDATE H_OX JACOBIANA DA DE BAIXO
-def H_of(x, landmark_pos):
-    px = landmark_pos[0]
-    py = landmark_pos[1]
-    hyp = (px - x[0, 0])**2 + (py - x[1, 0])**2
-    dist = sqrt(hyp)
 
-    H = np.array(
-        [[-(px - x[0, 0]) / dist, -(py - x[1, 0]) / dist, 0],
-         [ (py - x[1, 0]) / hyp,  -(px - x[0, 0]) / hyp, -1]])
-    return H
+def H_of(x):
+    return x
 
-#UPDATE HX  FUNCAO DE MEDIDA
-def Hx(x, landmark_pos):
-    px = landmark_pos[0]
-    py = landmark_pos[1]
-    dist = sqrt((px - x[0, 0])**2 + (py - x[1, 0])**2)
-    Hx = np.array([[dist], [atan2(py - x[1, 0], px - x[0, 0]) - x[2, 0]]])
-    return Hx
+
+def Hx(x):
+    Hx = np.array(
+        [[1,0,0],
+         [0,1,0],
+         [0,0,1]])
+
+    return dot(Hx,x)
 
 
 #UPDATE MEDIDAS , AQUI ENTRAM OS DADOS DA CAMERA
@@ -54,8 +47,7 @@ def run_localization(landmarks, std_vel, std_steer,
                      std_range, std_bearing,
                      step=10, ellipse_step=20, ylim=None):
     # UPDATE VALORES PASSADOS PARA FUNCAO E REDEFINIR MATRIZES
-    ekf = RobotEKF(dt, wheelbase=0.5, std_vel=std_vel, 
-                   std_steer=std_steer)
+    ekf = RobotEKF(dt)
     ekf.x = np.array([[2, 6, .3]]).T # x, y, steer angle
     ekf.P = np.diag([.1, .1, .1])
     ekf.R = np.diag([std_range**2, std_bearing**2])
@@ -70,7 +62,7 @@ def run_localization(landmarks, std_vel, std_steer,
     
     track = []
     for i in range(200):
-        sim_pos = ekf.move(sim_pos, u, dt/10.) # simulate robot
+        sim_pos = ekf.move(sim_pos, dt/10.) # simulate robot
         track.append(sim_pos)
 
         if i % step == 0:
