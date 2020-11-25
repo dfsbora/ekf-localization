@@ -55,15 +55,16 @@ for i in range(0, 20):
         # First Field = TimeStamp.
         timeStamp = val[0]
         # Second Field = array of Mark_Info's.
-        markInfoArray = val[1]
+        mark_info_array = val[1]
+        camera_pose = val[2]
 
         try:
-            # Browse the markInfoArray to get info on each detected mark.
-            for markInfo in markInfoArray:
+            # Browse the mark_info_array to get info on each detected mark.
+            for mark_info in mark_info_array:
                 # First Field = Shape info.
-                markShapeInfo = markInfo[0]
+                markShapeInfo = mark_info[0]
                 # Second Field = Extra info (i.e., mark ID).
-                markExtraInfo = markInfo[1]
+                markExtraInfo = mark_info[1]
                 # Print Mark information.
                 print "mark    ID: %d" % (markExtraInfo[0])
                 print "    alpha %.3f - beta %.3f" % (markShapeInfo[1], markShapeInfo[2])
@@ -72,6 +73,17 @@ for i in range(0, 20):
             print "Landmarks detected, but it seems getData is invalid. ALValue ="
             print val
             print "Error msg %s" % (str(e))
+
+        try:
+
+            print "Position: %.2f , %.2f ,%.2f " % (camera_pose[0], camera_pose[1], camera_pose[2])
+            print "Angles: %.2f , %.2f ,%.2f " % (camera_pose[3], camera_pose[4], camera_pose[5])
+ 
+        except Exception, e:
+            print "Landmarks detected, but it seems getData is invalid. ALValue ="
+            print val
+            print "Error msg %s" % (str(e))
+
     else:
         print "Error with getData. ALValue = %s" % (str(val))
 
