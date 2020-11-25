@@ -36,7 +36,7 @@ class RobotEKF(EKF):
         self.gyro_bias = 0.
         self.acc_bias = 0.
         
-        self.gyro_bias = 0.
+        self.gyro = 0.
         self.acc = 0
     
 
@@ -113,7 +113,7 @@ class RobotEKF(EKF):
         i = 0
 
         while (time.time() - initial_time) < calibration_time:
-            acc, gyro = read_sensors(mem_proxy)
+            acc, gyro = self.read_sensors()
             acc_sum = acc_sum + acc
             gyro_sum = gyro_sum + gyro
             i = i+1
@@ -129,13 +129,20 @@ class RobotEKF(EKF):
 
 
     def read_sensors(self):
-        gyroX = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/GyroscopeX/Sensor/Value")
-        gyroY = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/GyroscopeY/Sensor/Value" )
-        gyroZ = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/GyroscopeZ/Sensor/Value" )
-
         accX = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/AccelerometerX/Sensor/Value")
         accY = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/AccelerometerY/Sensor/Value")
         accZ = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/AccelerometerZ/Sensor/Value")
 
-        self.gyro = np.array([[gyroX,gyroY,gyroZ]]).T - self.gyro_bias
-        self.acc = np.array([[accX,accY,accZ]]).T - self.acc_bias
+        gyroX = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/GyroscopeX/Sensor/Value")
+        gyroY = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/GyroscopeY/Sensor/Value")
+        gyroZ = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/GyroscopeZ/Sensor/Value")
+
+        acc = np.array([[accX,accY,accZ]]).T 
+        gyro = np.array([[gyroX,gyroY,gyroZ]]).T 
+        
+        return acc, gyro 
+
+    def compensate_bias(self, acc, gyro):
+        self.acc = acc - self.acc_bias  #TODO precisa compensar a rotação aqui?
+        self.gyro = gyro - self.gyro_bias
+
