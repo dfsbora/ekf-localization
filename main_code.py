@@ -4,7 +4,11 @@ from robot_EKF import RobotEKF
 ekf = RobotEKF(dt=1.0)
 
 acc, gyro =  ekf.read_sensors()
-print acc
+ekf.calibration()
+print ekf.acc_bias
+print gyro_bias
+
+
 
 
 while True:
@@ -12,7 +16,6 @@ while True:
 
 
 	print(ekf.x)
-
 
 
 
