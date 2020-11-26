@@ -6,11 +6,11 @@ This is licensed under an MIT license.
 
 from __future__ import (absolute_import, division, unicode_literals)
 
-from copy import deepcopy
-from math import log, exp, sqrt
 import sys
 import numpy as np
 from numpy import dot, zeros, eye
+from copy import deepcopy
+from math import log, exp, sqrt
 import scipy.linalg as linalg
 from reshape_z import reshape_z
 
@@ -221,8 +221,6 @@ class ExtendedKalmanFilter(object):
         u : np.array
             Optional control vector. 
         """
-
-
 
         self.predict_x(u)
         self.P = dot(self.F, self.P).dot(self.F.T) + self.Q
