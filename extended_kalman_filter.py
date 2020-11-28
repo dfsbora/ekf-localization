@@ -209,7 +209,7 @@ class ExtendedKalmanFilter(object):
         need to do this, for example, if the usual Taylor expansion to
         generate F is not providing accurate results for you.
         """
-        self.x = dot(self.F, self.x) + dot(self.B, u)  # TODO corrigir
+        self.x = dot(self.F, self.x) + dot(self.B, u) 
 
     def predict(self, u=0):
         """
