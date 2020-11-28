@@ -4,6 +4,8 @@ from numpy.linalg import norm
 from math import cos, acos
 from math import sin
 from math import acos
+import time
+import numpy as np
 
 
 def get_rotation_angle(rot):
@@ -53,12 +55,13 @@ ekf = RobotEKF(dt=1.0)
 
 
 #Initialize filter parameters
-ekf.x = np.array([[0,0,0,0,0,0]])
-ekf.P = np.diag([.5,.5,.5,.5,.5,.5]])
+ekf.x = np.array([[0,0,0,0,0,0]]).T
+#ekf.P = np.diag([[.5,.5,.5,.5,.5,.5]])
+ekf.P *= 0.5
+print ekf.P
 ekf.R = np.diag([std_range**2, std_bearing**2])
 
-ekf.calibration(calibration_time=30)
-
+ekf.calibration(calibration_time=10)
 
 
 
@@ -70,7 +73,7 @@ for i in range(120):
 	ekf.predict()
 
 	#ekf.update()
-	detected_landmarks = read_landmarks()
+	detected_landmarks = ekf.read_landmarks()
 	if len(detected_landmarks):
 		for lmark in detected_landmarks:
 				lmark_id = lmark[0][0]
