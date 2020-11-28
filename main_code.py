@@ -16,6 +16,7 @@ PRINT_STEP = 20
 # Execution variables
 N = 120
 TIME_SLEEP = 0.5
+CALIBRATION_TIME = 60
 
 
 #########################################################
@@ -94,7 +95,7 @@ if DEBUG:
 
 # CALIBRATION
 # Calculate gyroscope and accelerometer bias
-ekf.calibration(calibration_time=40)
+ekf.calibration(calibration_time=CALIBRATION_TIME)
 
 if DEBUG:
 	print "IMU calibrated"
@@ -142,3 +143,6 @@ for i in range(N):
 		print("Update")
 		print(ekf.x)
 		print('\n')
+
+print("Final position: ", ekf.x)
+print("Final P: ", ekf.P)
