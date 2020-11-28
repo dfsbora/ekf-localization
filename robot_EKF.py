@@ -145,7 +145,7 @@ class RobotEKF(EKF):
         self.acc = acc - self.acc_bias  #TODO precisa compensar a rotação aqui?
         self.gyro = gyro - self.gyro_bias
 
-    # Read memory for detected landmarks. Return ID, distance, angle.
+    
     def read_landmarks(self):
         """ Access memory to read detected landmarks information
         
