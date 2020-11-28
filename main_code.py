@@ -7,9 +7,11 @@ from math import acos
 import time
 import numpy as np
 
+
+# Debug variables
 DEBUG = 1
 DEBUG_DETAIL = 0
-
+PRINT_STEP = 20
 
 #########################################################
 # NOT USED FUNCTIONS
@@ -52,23 +54,25 @@ def track_position(rot, acc, vel, pos, dt):
 
 #########################################################
 
-# Field Map Dictionary "NAOmark ID: (x,y)"
+# MAP
+# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
 field_map =  {}
 field_map[85] = np.array([[0,0]]).T
 
 
-
-# Variances declaration
-std_range = 0.5
-std_bearing = 0.5
-
-# Create filter
+# Create instance of robot filter
 ekf = RobotEKF(dt=1.0)
 
 if DEBUG:
 	print "RobotEKF Object created"
 
-# Initialize filter parameters
+
+# FILTER INITIALIZATION
+# Variances
+std_range = 0.5
+std_bearing = 0.5
+
+# Filter parameters initialization
 ekf.x = np.array([[1.5,0,0,0,0,0]]).T
 ekf.P *= 0.5
 ekf.R = np.diag([std_range**2, std_bearing**2])
@@ -76,60 +80,54 @@ ekf.R = np.diag([std_range**2, std_bearing**2])
 if DEBUG:
 	print "Parameters initialized"
 
-# Calibrate gyroscope and accelerometer
+
+# CALIBRATION
+# Calculate gyroscope and accelerometer bias
 ekf.calibration(calibration_time=120)
 
 if DEBUG:
 	print "IMU calibrated"
-	print "\n"
-	print "\n"
+	print "\n\n"
 
 
-
-# Debug variables
-print_step = 20
-
-#while True:
+# LOCALIZATION LOOP
 for i in range(120):	
 	time.sleep(0.5)
 
-
+	# PREDICT
 	ekf.predict()
 
 	if (i % print_step) == 0 and DEBUG:
-		print('***************')
-		print("i =  ", i)
-		print("prediction")
+		print("***************")
+		print("Prediction")
 		print(ekf.x)
 		print('\n')
 	
+	# UPDATE
 	detected_landmarks = ekf.read_landmarks()
 
 	# No feature detected
 	if detected_landmarks is None:
+		# Update step copies predicted values
 		ekf.update(z=detected_landmarks)
 		continue
 
-	# Feature detected
+	# Update filter for each detected feature
 	for lmark in detected_landmarks:
 		lmark_id = lmark[0]
 
 		if DEBUG_DETAIL:
-			print("Detected ", lmark_id)
+			print("Detected landmark number: ", lmark_id)
 
+		# Create measurement array as [distance, angle]
 		z = np.array([[ lmark[1], lmark[2] ]])
+
+		# Get landmark gt position
 		lmark_real_pos = field_map.get(lmark_id) 
 
         ekf.update(z, lmark_real_pos)
 
-	if (i % print_step) == 0 and DEBUG:
-		print('\n')
-		print('update')
+	if (i % PRINT_STEP) == 0 and DEBUG:
+		print("Update")
 		print(ekf.x)
 		print('\n')
-
-	
-
-
-
-
