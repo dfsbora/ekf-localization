@@ -7,6 +7,8 @@ from math import acos
 import time
 import numpy as np
 
+DEBUG = 1
+
 
 def get_rotation_angle(rot):
 	return acos(rot[0][0])
@@ -44,6 +46,8 @@ def track_position(rot, acc, vel, pos, dt):
 	return acc, vel, pos
 
 
+#########################################################
+
 std_range=0.3
 std_bearing=0.1
 
@@ -51,7 +55,11 @@ gt_landmarks =  {}
 gt_landmarks[85] = np.array([[0,0]])
 
 
+
 ekf = RobotEKF(dt=1.0)
+
+if DEBUG:
+	print "RobotEKF Object created"
 
 
 #Initialize filter parameters
@@ -61,28 +69,45 @@ ekf.P *= 0.5
 print ekf.P
 ekf.R = np.diag([std_range**2, std_bearing**2])
 
-ekf.calibration(calibration_time=10)
+if DEBUG:
+	print "Parameters initialized"
 
 
+ekf.calibration(calibration_time=2)
 
-step = 10
+if DEBUG:
+	print "IMU calibrated"
 
+
+step = 20
 #while True:
 for i in range(120):	
-	time.sleep(1)
+	time.sleep(0.5)
 	ekf.predict()
 
 	#ekf.update()
 	detected_landmarks = ekf.read_landmarks()
-	if len(detected_landmarks):
-		for lmark in detected_landmarks:
-				lmark_id = lmark[0][0]
-				print type(lmark_id)
 
-				z = np.array([[ lmark[0][1], lmark[0][2] ]])
-				lmark_real_pos = gt_landmarks.get(lmark_id) #check lmark_id type
+	if detected_landmarks is None:
+		ekf.update(z=detected_landmarks)
+		continue
 
-                ekf.update(z, HJacobian=self.h_jacobian, Hx=self.h, residual=self.residual, args=(lmark_real_pos), hx_args=(lmark_real_pos))
+	for lmark in detected_landmarks:
+		lmark_id = lmark[0]
+		if DEBUG:
+			print "Detected " + lmark_id
+
+		z = np.array([[ lmark[1], lmark[2] ]])
+		lmark_real_pos = gt_landmarks.get(lmark_id) #check lmark_id type
+			print lmark_real_pos
+
+        #ekf.update(z, HJacobian=ekf.h_jacobian, Hx=ekf.h, residual=ekf.residual, args=(lmark_real_pos), hx_args=(lmark_real_pos))
+        ekf.update(z, lmark_real_pos)
+
+	if i % step == 0 and DEBUG:
+		print '***************'
+		print 'i =  %d' % (i)
+		print ekf.x
 
 	
 
