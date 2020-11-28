@@ -61,12 +61,9 @@ ekf = RobotEKF(dt=1.0)
 if DEBUG:
 	print "RobotEKF Object created"
 
-
 #Initialize filter parameters
 ekf.x = np.array([[1.5,0,0,0,0,0]]).T
-#ekf.P = np.diag([[.5,.5,.5,.5,.5,.5]])
 ekf.P *= 0.5
-print ekf.P
 ekf.R = np.diag([std_range**2, std_bearing**2])
 
 if DEBUG:
@@ -84,6 +81,10 @@ if DEBUG:
 step = 20
 #while True:
 for i in range(120):	
+	if DEBUG:
+		print("\n\n")
+		print("********")
+		print("i= ", i)
 	time.sleep(0.5)
 	ekf.predict()
 
@@ -107,7 +108,7 @@ for i in range(120):
         #ekf.update(z, HJacobian=ekf.h_jacobian, Hx=ekf.h, residual=ekf.residual, args=(lmark_real_pos), hx_args=(lmark_real_pos))
         ekf.update(z, lmark_real_pos)
 
-	if i % step == 0 and DEBUG:
+	if (i % step) == 0 and DEBUG:
 		print('***************')
 		print("i =  ", i)
 		print(ekf.x)

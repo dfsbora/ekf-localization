@@ -4,6 +4,7 @@ from numpy import array, sqrt, dot
 from numpy import sin, cos, tan
 import numpy as np
 from numpy.random import rand
+import scipy.linalg as linalg
 
 import time
 from naoqi import ALProxy
@@ -171,20 +172,26 @@ class RobotEKF(EKF):
 
     #Linearizado
     def h_jacobian(self, lmark):
-        dx = self.x[0] - lmark[0]
-        dy = self.x[2] - lmark[1]
+        dx = self.x[0][0] - lmark[0][0]
+        dy = self.x[2][0] - lmark[1][0]
         hyp = dx**2+dy**2
         distance = sqrt(hyp)
-        if DEBUG:
-            print "\n"
-            print("**********")
-            print("H Jacobian")
-            print("hyp: ", hyp)
-            print("distance: ", distance)
-            print "\n"
 
         H = np.array([[dx/distance , 0, dy/distance, 0, 0, 0],
             [dy/hyp , 0, dx/hyp, 0, -1, 0]])
+
+        # if DEBUG:
+        #     print "\n"
+        #     print("**********")
+        #     print("H Jacobian")
+        #     print(self.x[0][0])
+        #     print(lmark[0][0])
+        #     print("dx: ", dx)
+        #     print("dy: ", dy)
+        #     print("hyp: ", hyp)
+        #     print("distance: ", distance)
+        #     print("H: ", H)
+        #     print "\n"
 
         return H
 
@@ -261,7 +268,20 @@ class RobotEKF(EKF):
 
         #Calculate Kalman Gain
         PHT = dot(self.P, H.T)
+        if DEBUG:
+            print("H: ", H)
+            print("P: ", self.P)
+            print("PHT: ", PHT)
+            print("R: ", R)
+            print "\n\n"      
+
         self.S = dot(H, PHT) + R
+        #TODO working here
+        if DEBUG:
+            print("S: ", self.S)
+            print("Type of S: ", type(self.S))
+            print("Elements type: ", self.S.dtype)
+            print "\n\n"
         self.SI = linalg.inv(self.S)
         self.K = PHT.dot(self.SI)
 
