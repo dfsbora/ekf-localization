@@ -5,7 +5,7 @@ from math import sin, cos, tan, atan
 import numpy as np
 from numpy.random import rand
 import scipy.linalg as linalg
-
+from copy import deepcopy
 import time
 from naoqi import ALProxy
 
@@ -210,8 +210,18 @@ class RobotEKF(EKF):
 
         return H
 
-    def residual(a, b):
-        y = a - b
+    def residual(self, a, b):
+        y = (a - b).T
+
+
+        if DEBUG:
+            print "\n"
+            print("**********")
+            print(a)
+            print(b)
+            print(y)
+            print "\n"
+
         y[1] = y[1] % (2 * np.pi)    # force in range [0, 2 pi)
         if y[1] > np.pi:             # move to [-pi, pi)
             y[1] -= 2 * np.pi
