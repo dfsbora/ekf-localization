@@ -273,7 +273,7 @@ class RobotEKF(EKF):
         if y[1] > np.pi:             # move to [-pi, pi)
             y[1] -= 2 * np.pi
 
-        if DEBUG:
+        if DEBUG_DETAIL:
             print("Residual")
             print(y)
             print("\n")

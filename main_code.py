@@ -19,6 +19,7 @@ TIME_SLEEP = 0.5
 CALIBRATION_TIME = 60
 
 
+
 #########################################################
 # NOT USED FUNCTIONS
 
@@ -67,7 +68,7 @@ field_map[85] = np.array([[0,0]]).T
 
 
 # Create instance of robot filter
-ekf = RobotEKF(dt=0.5)
+ekf = RobotEKF(dt=TIME_SLEEP)
 
 if DEBUG:
 	print "RobotEKF Object created"
