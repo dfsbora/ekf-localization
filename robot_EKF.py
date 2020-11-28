@@ -9,7 +9,7 @@ import time
 from naoqi import ALProxy
 
 
-DEBUG = 0
+DEBUG = 1
 
 class RobotEKF(EKF):
     def __init__(self, dt):
@@ -79,12 +79,21 @@ class RobotEKF(EKF):
             i = i+1
 
             if (time.time() - counter_prev) > 30:
-                print("acc:", acc)
-                print("gyro:", gyro)
+                if DEBUG:
+                    print "Calibration in progress"
+                    print("Acc reading:", acc)
+                    print("Gyro reading:", gyro)
                 counter_prev=time.time()
 
-        self.acc_bias = acc_sum/i
-        self.gyro_bias = gyro_sum/i
+        acc_bias = acc_sum/i
+        gyro_bias = gyro_sum/i
+
+        self.acc_bias = acc_bias
+        self.gyro_bias = gyro_bias
+
+        if DEBUG:
+            print "Acc bias: %.2f" % (acc_bias)
+            print "Gyro bias: %.2f" % (gyro_bias)
 
 
     def get_vel_pos(self):
@@ -115,9 +124,12 @@ class RobotEKF(EKF):
     def read_landmarks(self):
         val = self.mem_proxy.getData(self.mem_value, 0)
 
-        landmarks = []
+        #landmarks = []
+        landmarks = None
+
         if(val and isinstance(val, list) and len(val) >= 2):
             #time_stamp = val[0]
+            landmarks = []
             mark_info_array = val[1]
             camera_pose = val[2]
         
@@ -149,7 +161,6 @@ class RobotEKF(EKF):
         distance = sqrt(dx**2+dy**2)
         landmark_angle = atan(dy/dx)
 
-
         #if alpha < 0:
         #    angle = self.x[4] - landmark_angle
         #else:
@@ -157,7 +168,6 @@ class RobotEKF(EKF):
 
         H = np.array([[distance, angle]])
         return H
-
 
     #Linearizado
     def h_jacobian(self, lmark):
@@ -176,3 +186,91 @@ class RobotEKF(EKF):
         if y[1] > np.pi:             # move to [-pi, pi)
             y[1] -= 2 * np.pi
         return y
+
+
+    def update(self, z, lmark_real_pos=None, R=None):
+        """ Performs the update innovation of the extended Kalman filter.
+
+        Parameters
+        ----------
+
+        z : np.array
+            measurement for this step.
+            If `None`, posterior is not computed
+
+        HJacobian : function
+           function which computes the Jacobian of the H matrix (measurement
+           function). Takes state variable (self.x) as input, returns H.
+
+        Hx : function
+            function which takes as input the state variable (self.x) along
+            with the optional arguments in hx_args, and returns the measurement
+            that would correspond to that state.
+
+        R : np.array, scalar, or None
+            Optionally provide R to override the measurement noise for this
+            one call, otherwise  self.R will be used.
+
+        args : tuple, optional, default (,)
+            arguments to be passed into HJacobian after the required state
+            variable. for robot localization you might need to pass in
+            information about the map and time of day, so you might have
+            `args=(map_data, time)`, where the signature of HCacobian will
+            be `def HJacobian(x, map, t)`
+
+        hx_args : tuple, optional, default (,)
+            arguments to be passed into Hx function after the required state
+            variable.
+
+        residual : function (z, z2), optional
+            Optional function that computes the residual (difference) between
+            the two measurement vectors. If you do not provide this, then the
+            built in minus operator will be used. You will normally want to use
+            the built in unless your residual computation is nonlinear (for
+            example, if they are angles)
+        """
+
+        #No measurement
+        if z is None:
+            self.z = np.array([[None]*self.dim_z]).T
+            self.x_post = self.x.copy()
+            self.P_post = self.P.copy()
+            return
+
+        #Keep internal R the same, otherwise update it
+        if R is None:
+            R = self.R
+        elif np.isscalar(R):
+            R = eye(self.dim_z) * R
+
+        #Assure it is a vector
+        if np.isscalar(z) and self.dim_z == 1:
+            z = np.asarray([z], float)
+
+        #Define HJacobian to be used in calculations
+        #H = HJacobian(self.x, *args)
+        H = self.h_jacobian(lmark_real_pos)
+
+        #Calculate Kalman Gain
+        PHT = dot(self.P, H.T)
+        self.S = dot(H, PHT) + R
+        self.SI = linalg.inv(self.S)
+        self.K = PHT.dot(self.SI)
+
+        #Calculate residual using defined residual function
+        #hx = Hx(self.x, *hx_args)
+        hx = self.h(lmark_real_pos)
+        self.y = residual(z, hx)
+        self.x = self.x + dot(self.K, self.y)
+
+        # P = (I-KH)P(I-KH)' + KRK' is more numerically stable
+        # and works for non-optimal K vs the equation
+        # P = (I-KH)P usually seen in the literature.
+        #Update P
+        I_KH = self._I - dot(self.K, H)
+        self.P = dot(I_KH, self.P).dot(I_KH.T) + dot(self.K, R).dot(self.K.T)
+
+        # save measurement and posterior state
+        self.z = deepcopy(z)
+        self.x_post = self.x.copy()
+        self.P_post = self.P.copy()
