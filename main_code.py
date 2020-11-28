@@ -61,7 +61,7 @@ field_map[85] = np.array([[0,0]]).T
 
 
 # Create instance of robot filter
-ekf = RobotEKF(dt=1.0)
+ekf = RobotEKF(dt=0.5)
 
 if DEBUG:
 	print "RobotEKF Object created"
