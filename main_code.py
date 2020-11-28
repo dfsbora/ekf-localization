@@ -83,7 +83,7 @@ if DEBUG:
 
 # CALIBRATION
 # Calculate gyroscope and accelerometer bias
-ekf.calibration(calibration_time=120)
+ekf.calibration(calibration_time=40)
 
 if DEBUG:
 	print "IMU calibrated"
@@ -97,7 +97,7 @@ for i in range(120):
 	# PREDICT
 	ekf.predict()
 
-	if (i % print_step) == 0 and DEBUG:
+	if (i % PRINT_STEP) == 0 and DEBUG:
 		print("***************")
 		print("Prediction")
 		print(ekf.x)
