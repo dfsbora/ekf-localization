@@ -13,6 +13,11 @@ DEBUG = 1
 DEBUG_DETAIL = 0
 PRINT_STEP = 20
 
+# Execution variables
+N = 120
+TIME_SLEEP = 0.5
+
+
 #########################################################
 # NOT USED FUNCTIONS
 
@@ -97,8 +102,8 @@ if DEBUG:
 
 
 # LOCALIZATION LOOP
-for i in range(120):	
-	time.sleep(0.5)
+for i in range(N):	
+	time.sleep(TIME_SLEEP)
 
 	# PREDICT
 	ekf.predict()
