@@ -181,6 +181,7 @@ class RobotEKF(EKF):
             print("H Jacobian")
             print("hyp: ", hyp)
             print("distance: ", distance)
+            print "\n"
 
         H = np.array([[dx/distance , 0, dy/distance, 0, 0, 0],
             [dy/hyp , 0, dx/hyp, 0, -1, 0]])

@@ -77,6 +77,8 @@ ekf.calibration(calibration_time=2)
 
 if DEBUG:
 	print "IMU calibrated"
+	print "\n"
+	print "\n"
 
 
 step = 20
