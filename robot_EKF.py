@@ -11,11 +11,12 @@ from naoqi import ALProxy
 
 
 DEBUG = 1
+DEBUG_DETAIL = 0
 
 class RobotEKF(EKF):
     def __init__(self, dt):
-        EKF.__init__(self, 6, 2)  #(self, dim_x, dim_z,  dim_u=0)
-        self.dt = dt # predict period
+        
+        EKF.__init__(self, 6, 2)
 
         self.F = np.array(
             [[1, dt, 0, 0, 0, 0],
@@ -25,14 +26,13 @@ class RobotEKF(EKF):
              [0,0,0,0,1,dt],
              [0,0,0,0,0,1]])
 
-        #Initialize proxies
+        # INITIALIZE PROXIES
         robotIP = "nao.local"
         PORT = 9559
-        fpsTime = 1/20
 
         try: 
             self.motion_proxy  = ALProxy("ALMotion", robotIP, PORT)
-            self.mem_proxy = ALProxy("ALMemory","localhost", PORT)
+            self.mem_proxy = ALProxy("ALMemory",robotIP, PORT)
             self.lmark_proxy = ALProxy("ALLandMarkDetection", robotIP, PORT)
             self.mem_value = "LandmarkDetected"
 
@@ -41,13 +41,14 @@ class RobotEKF(EKF):
             print str(e)
             exit(1)
 
-
-        self.gyro_bias = np.zeros((3, 1))
+        # IMU
+        # Create gyroscope and accelerometer atributes
         self.acc_bias = np.zeros((3, 1))
-        
+        self.gyro_bias = np.zeros((3, 1))
+
+        self.acc = np.zeros((3, 1))        
         self.gyro = np.zeros((3, 1))
-        self.acc = np.zeros((3, 1))
-    
+
 
     def move(self, x, dt):
         change = np.array(
@@ -62,16 +63,27 @@ class RobotEKF(EKF):
 
         return x + dx
 
-    #TODO
+
     def calibration(self,calibration_time=120):
+        """ Perform IMU sensors calibration
+
+        Parameters
+        ----------
+        calibration_time : int
+            Duration of calibration
+        """
+
         self.motion_proxy.setStiffnesses("Body", 1.0)
         self.motion_proxy.moveInit()
 
         acc_sum = np.array([[0., 0., 0.]]).T
         gyro_sum = np.array([[0., 0., 0.]]).T
-        initial_time =  time.time()
-        counter_prev = time.time()
+
         i = 0
+        initial_time =  time.time()
+
+        # Auxiliar time variable to print calibration status
+        counter_prev = time.time()
 
         while (time.time() - initial_time) < calibration_time:
             acc, gyro = self.read_sensors()
@@ -89,7 +101,7 @@ class RobotEKF(EKF):
         acc_bias = acc_sum/i
         gyro_bias = gyro_sum/i
 
-        self.acc_bias = acc_bias
+        self.acc_bias = acc_bias #TODO retirar gravidade daqui
         self.gyro_bias = gyro_bias
 
         if DEBUG:
@@ -104,6 +116,8 @@ class RobotEKF(EKF):
 
 
     def read_sensors(self):
+        """ Read IMU sensors data
+        """
         accX = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/AccelerometerX/Sensor/Value")
         accY = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/AccelerometerY/Sensor/Value")
         accZ = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/AccelerometerZ/Sensor/Value")
@@ -118,37 +132,59 @@ class RobotEKF(EKF):
         return acc, gyro 
 
     def compensate_bias(self, acc, gyro):
+        """ Compensate bias on IMU reading
+
+        Parameters
+        ----------
+        acc : np.array
+            accelerometer reading
+
+        gyro : np.array
+            gyroscope reading
+        """
         self.acc = acc - self.acc_bias  #TODO precisa compensar a rotação aqui?
         self.gyro = gyro - self.gyro_bias
 
     # Read memory for detected landmarks. Return ID, distance, angle.
     def read_landmarks(self):
+        """ Access memory to read detected landmarks information
+        
+        Returns
+        ----------
+        landmarks : None, array
+            array containing ID, distance and angle of detected landmarks
+        """
+
+        # Copy memory content
         val = self.mem_proxy.getData(self.mem_value, 0)
 
-        #landmarks = []
         landmarks = None
 
+        # Check if landmarks were detected
         if(val and isinstance(val, list) and len(val) >= 2):
-            #time_stamp = val[0]
+
             landmarks = []
             mark_info_array = val[1]
-            camera_pose = val[2]
+            camera_pose = val[2] # TODO not used
         
             try:
                 # Get info on each detected mark.
                 for mark_info in mark_info_array:
-
-                    mark_id = mark_info[1][0] #number of landmark
-                    #Distance regression
-                    distance = 0.134*mark_info[0][3]**(-1.04) #width
-                    angle = np.degrees(mark_info[0][1]) #alpha
-
+                    # Get NAOmark id number
+                    mark_id = mark_info[1][0] 
+                    # Distance regression as function of NAOmark width 
+                    distance = 0.134*mark_info[0][3]**(-1.04) 
+                    # Angle alpha between camera bisection and detected landmark
+                    angle = np.degrees(mark_info[0][1]) 
+                    # Create array with relevant information
                     landmark = [mark_id, distance, angle]
                     landmarks.append(landmark)
 
-                    # if DEBUG:
-                    #     print "distance %.2f" % (distance)
-                    #     print "angle %.1f" % (angle)
+                    if DEBUG_DETAIL:
+                        print "*********"
+                        print "Landmark reading"
+                        print "Distance: %.2f" % (distance)
+                        print "Angle:  %.1f" % (angle)
 
             except Exception:
                 pass
@@ -157,6 +193,17 @@ class RobotEKF(EKF):
 
 
     def h(self, lmark):
+        """ Transform state to measurement space
+        Parameters
+        ----------
+        lmark : 
+
+        Returns
+        ----------
+        hx : 
+            state transformed to measurement space
+        """
+
         dx = self.x[0][0] - lmark[0][0]
         dy = self.x[2][0] - lmark[1][0]
         distance = sqrt(dx**2+dy**2)
@@ -165,28 +212,30 @@ class RobotEKF(EKF):
         #if alpha < 0:
         #    angle = self.x[4] - landmark_angle
         #else:
-        angle = landmark_angle - self.x[4]   #Labbe faz assim apenas
+        angle = landmark_angle - self.x[4]   # TODO Labbe faz assim apenas
 
-        H = np.array([[distance, angle]])
+        hx = np.array([[distance, angle]])
 
-        if DEBUG:
-            print "\n"
-            print("**********")
-            print("H")
-            print(self.x[0])
-            print(lmark[0])
-            print("dx: ", dx)
-            print("dy: ", dy)
-            print("angle: ", angle)
-            print("distance: ", distance)
-            print("H: ", H)
-            print "\n"
+        if DEBUG_DETAIL:
+            print("x in measurement space: ", z)
+            print("\n")
+
+        return hx
 
 
-        return H
-
-    #Linearizado
     def h_jacobian(self, lmark):
+        """ Compute jacobian (linearized) measurement matrix H
+
+        Parameters
+        ----------
+        lmark : 
+
+        Returns
+        ----------
+        H : 
+            jacobian of h
+            
+        """
         dx = self.x[0][0] - lmark[0][0]
         dy = self.x[2][0] - lmark[1][0]
         hyp = dx**2+dy**2
@@ -195,34 +244,32 @@ class RobotEKF(EKF):
         H = np.array([[dx/distance , 0, dy/distance, 0, 0, 0],
             [dy/hyp , 0, dx/hyp, 0, -1, 0]])
 
-        # if DEBUG:
-        #     print "\n"
-        #     print("**********")
-        #     print("H Jacobian")
-        #     print(self.x[0][0])
-        #     print(lmark[0][0])
-        #     print("dx: ", dx)
-        #     print("dy: ", dy)
-        #     print("hyp: ", hyp)
-        #     print("distance: ", distance)
-        #     print("H: ", H)
-        #     print "\n"
+        if DEBUG_DETAIL:
+            print("H jacobian: ", H)
+            print("\n")
 
         return H
 
+
     def residual(self, a, b):
+        """ Calculate residual and force the angle to be in range [0, 2 pi)
+
+        Parameters
+        ----------
+        a : 
+            measurement
+        b :
+            state transformed do measurement
+
+        Returns
+        ----------
+        y : 
+            residual
+        """
+
         y = (a - b).T
 
-
-        if DEBUG:
-            print "\n"
-            print("**********")
-            print(a)
-            print(b)
-            print(y)
-            print "\n"
-
-        y[1] = y[1] % (2 * np.pi)    # force in range [0, 2 pi)
+        y[1] = y[1] % (2 * np.pi)    
         if y[1] > np.pi:             # move to [-pi, pi)
             y[1] -= 2 * np.pi
         return y
@@ -287,31 +334,22 @@ class RobotEKF(EKF):
         if np.isscalar(z) and self.dim_z == 1:
             z = np.asarray([z], float)
 
-        #Define HJacobian to be used in calculations
-        #H = HJacobian(self.x, *args)
+        #Define h_jacobian to be used in calculations
         H = self.h_jacobian(lmark_real_pos)
 
         #Calculate Kalman Gain
-        PHT = dot(self.P, H.T)
-        if DEBUG:
-            print("H: ", H)
-            print("P: ", self.P)
-            print("PHT: ", PHT)
-            print("R: ", R)
-            print "\n\n"      
+        PHT = dot(self.P, H.T)    
 
         self.S = dot(H, PHT) + R
-        #TODO working here
-        # if DEBUG:
-        #     print("S: ", self.S)
-        #     print("Type of S: ", type(self.S))
-        #     print("Elements type: ", self.S.dtype)
-        #     print "\n\n"
         self.SI = linalg.inv(self.S)
         self.K = PHT.dot(self.SI)
 
+        if DEBUG_DETAIL:
+            print("Kalman gain")
+            print(self.K)
+            print("\n")
+
         #Calculate residual using defined residual function
-        #hx = Hx(self.x, *hx_args)
         hx = self.h(lmark_real_pos)
         self.y = self.residual(z, hx)
         self.x = self.x + dot(self.K, self.y)
@@ -319,7 +357,7 @@ class RobotEKF(EKF):
         # P = (I-KH)P(I-KH)' + KRK' is more numerically stable
         # and works for non-optimal K vs the equation
         # P = (I-KH)P usually seen in the literature.
-        #Update P
+        # Update P
         I_KH = self._I - dot(self.K, H)
         self.P = dot(I_KH, self.P).dot(I_KH.T) + dot(self.K, R).dot(self.K.T)
 
