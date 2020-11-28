@@ -176,7 +176,8 @@ class ExtendedKalmanFilter(object):
             z = np.asarray([z], float)
 
         #Define HJacobian to be used in calculations
-        H = HJacobian(self.x, *args)
+        #H = HJacobian(self.x, *args)
+        H = HJacobian()
 
         #Calculate Kalman Gain
         PHT = dot(self.P, H.T)
@@ -208,7 +209,7 @@ class ExtendedKalmanFilter(object):
         need to do this, for example, if the usual Taylor expansion to
         generate F is not providing accurate results for you.
         """
-        self.x = dot(self.F, self.x) + dot(self.B, u)
+        self.x = dot(self.F, self.x) + dot(self.B, u)  # TODO corrigir
 
     def predict(self, u=0):
         """
