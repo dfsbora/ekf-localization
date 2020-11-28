@@ -52,7 +52,7 @@ std_range=0.3
 std_bearing=0.1
 
 gt_landmarks =  {}
-gt_landmarks[85] = np.array([[0,0]])
+gt_landmarks[85] = np.array([[0,0]]).T
 
 
 
@@ -63,7 +63,7 @@ if DEBUG:
 
 
 #Initialize filter parameters
-ekf.x = np.array([[0,0,0,0,0,0]]).T
+ekf.x = np.array([[1.5,0,0,0,0,0]]).T
 #ekf.P = np.diag([[.5,.5,.5,.5,.5,.5]])
 ekf.P *= 0.5
 print ekf.P
@@ -95,19 +95,20 @@ for i in range(120):
 	for lmark in detected_landmarks:
 		lmark_id = lmark[0]
 		if DEBUG:
-			print "Detected " + lmark_id
+			print("Detected ", lmark_id)
 
 		z = np.array([[ lmark[1], lmark[2] ]])
 		lmark_real_pos = gt_landmarks.get(lmark_id) #check lmark_id type
-			print lmark_real_pos
+		if DEBUG:
+			print(lmark_real_pos)
 
         #ekf.update(z, HJacobian=ekf.h_jacobian, Hx=ekf.h, residual=ekf.residual, args=(lmark_real_pos), hx_args=(lmark_real_pos))
         ekf.update(z, lmark_real_pos)
 
 	if i % step == 0 and DEBUG:
-		print '***************'
-		print 'i =  %d' % (i)
-		print ekf.x
+		print('***************')
+		print("i =  ", i)
+		print(ekf.x)
 
 	
 

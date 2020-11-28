@@ -80,7 +80,7 @@ class RobotEKF(EKF):
 
             if (time.time() - counter_prev) > 30:
                 if DEBUG:
-                    print "Calibration in progress"
+                    print("Calibration in progress")
                     print("Acc reading:", acc)
                     print("Gyro reading:", gyro)
                 counter_prev=time.time()
@@ -92,8 +92,8 @@ class RobotEKF(EKF):
         self.gyro_bias = gyro_bias
 
         if DEBUG:
-            print "Acc bias: %.2f" % (acc_bias)
-            print "Gyro bias: %.2f" % (gyro_bias)
+            print("Acc bias: ", acc_bias)
+            print("Gyro bias: ", gyro_bias)
 
 
     def get_vel_pos(self):
@@ -145,9 +145,9 @@ class RobotEKF(EKF):
                     landmark = [mark_id, distance, angle]
                     landmarks.append(landmark)
 
-                    if DEBUG:
-                        print "distance %.2f" % (distance)
-                        print "angle %.1f" % (angle)
+                    # if DEBUG:
+                    #     print "distance %.2f" % (distance)
+                    #     print "angle %.1f" % (angle)
 
             except Exception:
                 pass
@@ -175,9 +175,16 @@ class RobotEKF(EKF):
         dy = self.x[2] - lmark[1]
         hyp = dx**2+dy**2
         distance = sqrt(hyp)
+        if DEBUG:
+            print "\n"
+            print("**********")
+            print("H Jacobian")
+            print("hyp: ", hyp)
+            print("distance: ", distance)
 
         H = np.array([[dx/distance , 0, dy/distance, 0, 0, 0],
             [dy/hyp , 0, dx/hyp, 0, -1, 0]])
+
 
 
     def residual(a, b):
