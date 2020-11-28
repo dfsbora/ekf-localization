@@ -45,6 +45,10 @@ def track_position(rot, acc, vel, pos, dt):
 std_range=0.3
 std_bearing=0.1
 
+gt_landmarks =  {}
+gt_landmarks[85] = np.array([[0,0]])
+
+
 ekf = RobotEKF(dt=1.0)
 
 
@@ -61,7 +65,7 @@ ekf.calibration(calibration_time=30)
 step = 10
 
 #while True:
-for i in range(200):	
+for i in range(120):	
 	time.sleep(1)
 	ekf.predict()
 
@@ -70,11 +74,12 @@ for i in range(200):
 	if len(detected_landmarks):
 		for lmark in detected_landmarks:
 				lmark_id = lmark[0][0]
+				print type(lmark_id)
+
 				z = np.array([[ lmark[0][1], lmark[0][2] ]])
+				lmark_real_pos = gt_landmarks.get(lmark_id) #check lmark_id type
 
-				lmark_real_pos = np.array()		 ##TODO	
-
-                ekf.update(z, HJacobian=self.h_jacobian(lmark_real_pos), Hx=self.h(lmark_real_pos), residual=self.residual, args=(lmark), hx_args=(lmark))
+                ekf.update(z, HJacobian=self.h_jacobian, Hx=self.h, residual=self.residual, args=(lmark_real_pos), hx_args=(lmark_real_pos))
 
 	
 
