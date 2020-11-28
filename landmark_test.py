@@ -1,5 +1,6 @@
 import time
 from naoqi import ALProxy
+import numpy as np
 
 # Replace this with your robot's IP address
 robotIP = "nao.local"
@@ -32,19 +33,38 @@ except Exception, e:
 
 print "Creating landmark detection proxy"
 
+
+positions = []
+infos = []
+camera = []
+
 # Read the memValue and check detected landmarks
-for i in range(0, 20):
-    time.sleep(0.5)
+while True:
+
+    s=raw_input()
+
+    if s == "q":
+        break
+
+    positions.append(s)
+
+    #time.sleep(0.5)
     val = mem_proxy.getData(mem_value, 0)
+
     print ""
     print "\*****"
     print ""
+
+
 
     # Check whether we got a valid output: a list with two fields.
     if(val and isinstance(val, list) and len(val) >= 2):
         time_stamp = val[0]
         mark_info_array = val[1]
         camera_pose = val[2]
+
+        infos.append(mark_info_array)
+        camera.append(camera_pose)
 
         try:
             # Get info on each detected mark.
@@ -54,26 +74,47 @@ for i in range(0, 20):
                 # Second Field = Extra info (i.e., mark ID).
                 mark_id = mark_info[1]
                 # Print Mark information.
-                print "mark    ID: %d" % (mark_id[0])
-                print "    alpha %.3f - beta %.3f" % (mark_shape_info[1], mark_shape_info[2])
-                print "    width %.3f - height %.3f" % (mark_shape_info[3], mark_shape_info[4])
+                # print "mark    ID: %d" % (mark_id[0])
+                # print "    alpha %.3f - beta %.3f" % (mark_shape_info[1], mark_shape_info[2])
+                # print "    width %.3f - height %.3f" % (mark_shape_info[3], mark_shape_info[4])
+                # print "    heading %.3f" % (mark_shape_info[5])
+
+                distance = 0.134*mark_shape_info[3]**(-1.04)
+                angle = np.degrees(mark_shape_info[1])
+                print "distance %.2f" % (distance)
+                print "angle %.1f" % (angle)
+
         except Exception, e:
             print "Landmarks detected, but it seems getData is invalid. ALValue ="
             print val
             print "Error msg %s" % (str(e))
 
-        try:
+        # try:
 
-            print "Positionx, y, z: %.2f , %.2f ,%.2f " % (camera_pose[0], camera_pose[1], camera_pose[2])
-            print ": %.2f , %.2f ,%.2f " % (camera_pose[3], camera_pose[4], camera_pose[5])
+        #     print "Positionx, y, z: %.2f , %.2f ,%.2f " % (camera_pose[0], camera_pose[1], camera_pose[2])
+        #     print ": %.2f , %.2f ,%.2f " % (camera_pose[3], camera_pose[4], camera_pose[5])
  
-        except Exception, e:
-            print "Landmarks detected, but it seems getData is invalid. ALValue ="
-            print val
-            print "Error msg %s" % (str(e))
+        # except Exception, e:
+        #     print "Landmarks detected, but it seems getData is invalid. ALValue ="
+        #     print val
+        #     print "Error msg %s" % (str(e))
 
     else:
         print "Error with getData. ALValue = %s" % (str(val))
+
+print "Writing file"
+
+for p,i,c in zip(positions, infos, camera):
+    print ""
+    print "\*****"
+    print ""
+    print p
+    print '\n'
+    print i
+    print '\n'
+    print c
+
+
 
 # Unsubscribe from the module.
 landmark_proxy.unsubscribe("Landmark")
