@@ -214,10 +214,10 @@ class RobotEKF(EKF):
         #else:
         angle = landmark_angle - self.x[4]   # TODO Labbe faz assim apenas
 
-        hx = np.array([[distance, angle]])
+        hx = np.array([[distance, angle]]).T
 
         if DEBUG_DETAIL:
-            print("x in measurement space: ", z)
+            print("x in measurement space: ", hx)
             print("\n")
 
         return hx
@@ -267,11 +267,16 @@ class RobotEKF(EKF):
             residual
         """
 
-        y = (a - b).T
+        y = (a - b)
 
         y[1] = y[1] % (2 * np.pi)    
         if y[1] > np.pi:             # move to [-pi, pi)
             y[1] -= 2 * np.pi
+
+        if DEBUG:
+            print("Residual")
+            print(y)
+            print("\n")
         return y
 
 

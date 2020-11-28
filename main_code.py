@@ -73,9 +73,15 @@ std_range = 0.5
 std_bearing = 0.5
 
 # Filter parameters initialization
+# State
 ekf.x = np.array([[1.5,0,0,0,0,0]]).T
+# Uncertainty covariance
 ekf.P *= 0.5
+# Process Uncertainty
+ekf.Q *= 2.
+# Measurement uncertainty
 ekf.R = np.diag([std_range**2, std_bearing**2])
+
 
 if DEBUG:
 	print "Parameters initialized"
@@ -120,7 +126,7 @@ for i in range(120):
 			print("Detected landmark number: ", lmark_id)
 
 		# Create measurement array as [distance, angle]
-		z = np.array([[ lmark[1], lmark[2] ]])
+		z = np.array([[ lmark[1], lmark[2] ]]).T
 
 		# Get landmark gt position
 		lmark_real_pos = field_map.get(lmark_id) 
