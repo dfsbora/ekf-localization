@@ -177,7 +177,7 @@ class ExtendedKalmanFilter(object):
 
         #Define HJacobian to be used in calculations
         #H = HJacobian(self.x, *args)
-        H = HJacobian()
+        H = HJacobian(*args)
 
         #Calculate Kalman Gain
         PHT = dot(self.P, H.T)
@@ -186,7 +186,8 @@ class ExtendedKalmanFilter(object):
         self.K = PHT.dot(self.SI)
 
         #Calculate residual using defined residual function
-        hx = Hx(self.x, *hx_args)
+        #hx = Hx(self.x, *hx_args)
+        hx = Hx(*hx_args)
         self.y = residual(z, hx)
         self.x = self.x + dot(self.K, self.y)
 
