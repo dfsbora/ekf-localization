@@ -8,7 +8,11 @@ import time
 import numpy as np
 
 DEBUG = 1
+DEBUG_DETAIL = 0
 
+
+#########################################################
+# NOT USED FUNCTIONS
 
 def get_rotation_angle(rot):
 	return acos(rot[0][0])
@@ -48,20 +52,23 @@ def track_position(rot, acc, vel, pos, dt):
 
 #########################################################
 
-std_range=0.3
-std_bearing=0.1
-
-gt_landmarks =  {}
-gt_landmarks[85] = np.array([[0,0]]).T
+# Field Map Dictionary "NAOmark ID: (x,y)"
+field_map =  {}
+field_map[85] = np.array([[0,0]]).T
 
 
 
+# Variances declaration
+std_range = 0.5
+std_bearing = 0.5
+
+# Create filter
 ekf = RobotEKF(dt=1.0)
 
 if DEBUG:
 	print "RobotEKF Object created"
 
-#Initialize filter parameters
+# Initialize filter parameters
 ekf.x = np.array([[1.5,0,0,0,0,0]]).T
 ekf.P *= 0.5
 ekf.R = np.diag([std_range**2, std_bearing**2])
@@ -69,8 +76,8 @@ ekf.R = np.diag([std_range**2, std_bearing**2])
 if DEBUG:
 	print "Parameters initialized"
 
-
-ekf.calibration(calibration_time=2)
+# Calibrate gyroscope and accelerometer
+ekf.calibration(calibration_time=120)
 
 if DEBUG:
 	print "IMU calibrated"
@@ -78,40 +85,48 @@ if DEBUG:
 	print "\n"
 
 
-step = 20
+
+# Debug variables
+print_step = 20
+
 #while True:
 for i in range(120):	
-	if DEBUG:
-		print("\n\n")
-		print("********")
-		print("i= ", i)
 	time.sleep(0.5)
+
+
 	ekf.predict()
 
-	#ekf.update()
+	if (i % print_step) == 0 and DEBUG:
+		print('***************')
+		print("i =  ", i)
+		print("prediction")
+		print(ekf.x)
+		print('\n')
+	
 	detected_landmarks = ekf.read_landmarks()
 
+	# No feature detected
 	if detected_landmarks is None:
 		ekf.update(z=detected_landmarks)
 		continue
 
+	# Feature detected
 	for lmark in detected_landmarks:
 		lmark_id = lmark[0]
-		if DEBUG:
+
+		if DEBUG_DETAIL:
 			print("Detected ", lmark_id)
 
 		z = np.array([[ lmark[1], lmark[2] ]])
-		lmark_real_pos = gt_landmarks.get(lmark_id) #check lmark_id type
-		if DEBUG:
-			print(lmark_real_pos)
+		lmark_real_pos = field_map.get(lmark_id) 
 
-        #ekf.update(z, HJacobian=ekf.h_jacobian, Hx=ekf.h, residual=ekf.residual, args=(lmark_real_pos), hx_args=(lmark_real_pos))
         ekf.update(z, lmark_real_pos)
 
-	if (i % step) == 0 and DEBUG:
-		print('***************')
-		print("i =  ", i)
+	if (i % print_step) == 0 and DEBUG:
+		print('\n')
+		print('update')
 		print(ekf.x)
+		print('\n')
 
 	
 
