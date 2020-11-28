@@ -13,7 +13,7 @@ DEBUG = 0
 
 class RobotEKF(EKF):
     def __init__(self, dt):
-        EKF.__init__(self, 6, 3)  #(self, dim_x, dim_z,  dim_u=0)
+        EKF.__init__(self, 6, 2)  #(self, dim_x, dim_z,  dim_u=0)
         self.dt = dt # predict period
 
         self.F = np.array(
@@ -31,7 +31,7 @@ class RobotEKF(EKF):
 
         try: 
             self.motion_proxy  = ALProxy("ALMotion", robotIP, PORT)
-            self.mem_proxy = ALProxy("ALMemory","localhost", PORR)
+            self.mem_proxy = ALProxy("ALMemory","localhost", PORT)
             self.lmark_proxy = ALProxy("ALLandMarkDetection", robotIP, PORT)
             self.mem_value = "LandmarkDetected"
 
