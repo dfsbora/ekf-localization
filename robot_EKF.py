@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from extended_kalman_filter import ExtendedKalmanFilter as EKF
 from numpy import array, sqrt, dot
-from numpy import sin, cos, tan
+from math import sin, cos, tan, atan
 import numpy as np
 from numpy.random import rand
 import scipy.linalg as linalg
@@ -157,8 +157,8 @@ class RobotEKF(EKF):
 
 
     def h(self, lmark):
-        dx = self.x[0] - lmark[0]
-        dy = self.x[2] - lmark[1]
+        dx = self.x[0][0] - lmark[0][0]
+        dy = self.x[2][0] - lmark[1][0]
         distance = sqrt(dx**2+dy**2)
         landmark_angle = atan(dy/dx)
 
@@ -168,6 +168,21 @@ class RobotEKF(EKF):
         angle = landmark_angle - self.x[4]   #Labbe faz assim apenas
 
         H = np.array([[distance, angle]])
+
+        if DEBUG:
+            print "\n"
+            print("**********")
+            print("H")
+            print(self.x[0])
+            print(lmark[0])
+            print("dx: ", dx)
+            print("dy: ", dy)
+            print("angle: ", angle)
+            print("distance: ", distance)
+            print("H: ", H)
+            print "\n"
+
+
         return H
 
     #Linearizado
@@ -277,18 +292,18 @@ class RobotEKF(EKF):
 
         self.S = dot(H, PHT) + R
         #TODO working here
-        if DEBUG:
-            print("S: ", self.S)
-            print("Type of S: ", type(self.S))
-            print("Elements type: ", self.S.dtype)
-            print "\n\n"
+        # if DEBUG:
+        #     print("S: ", self.S)
+        #     print("Type of S: ", type(self.S))
+        #     print("Elements type: ", self.S.dtype)
+        #     print "\n\n"
         self.SI = linalg.inv(self.S)
         self.K = PHT.dot(self.SI)
 
         #Calculate residual using defined residual function
         #hx = Hx(self.x, *hx_args)
         hx = self.h(lmark_real_pos)
-        self.y = residual(z, hx)
+        self.y = self.residual(z, hx)
         self.x = self.x + dot(self.K, self.y)
 
         # P = (I-KH)P(I-KH)' + KRK' is more numerically stable
