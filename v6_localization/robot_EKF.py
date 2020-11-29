@@ -50,18 +50,10 @@ class RobotEKF(EKF):
         self.gyro = np.zeros((3, 1))
 
 
-    def move(self, x, dt):
-        change = np.array(
-            [[1, dt, 0, 0, 0, 0],
-             [0,1,0,0,0,0],
-             [0,0,1,dt,0,0],
-             [0,0,0,1,0,0],
-             [0,0,0,0,1,dt],
-             [0,0,0,0,0,1]])
-
-        dx = dot(change, x) + rand(6,1)*0.2  #generates data
-
-        return x + dx
+    def move(self):
+        move_id = self.motion_proxy.post.moveTo(1.0,0,0, _async=True)
+        #move_id = self.motion_proxy.moveTo(1.0,0,0)#, _async=True)
+        return move_id
 
 
     def calibration(self,calibration_time=120):
@@ -370,3 +362,85 @@ class RobotEKF(EKF):
         self.z = deepcopy(z)
         self.x_post = self.x.copy()
         self.P_post = self.P.copy()
+
+
+
+    def f(self, u, dt):
+        """ Calculates x from previous x and current u
+
+        Parameters
+        ----------
+        u : 
+            
+        """
+        # ax = u[0][0]
+        # ay = u[1][0]
+        # wz = u[2][0]
+        # theta = self.x[4]
+        ax = 0
+        ay = 0
+        wz = 0
+        theta = 0
+
+        self.x[0] = self.x[0] + self.x[1]*dt + 0.5*(ax*cos(theta) - ay*sin(theta))*dt**2
+        self.x[1] = self.x[1] + (ax*cos(theta) - ay*sin(theta))*dt
+        self.x[2] = self.x[2] + self.x[3]*dt + 0.5*(ax*sin(theta) + ay*cos(theta))*dt**2
+        self.x[3] = self.x[3] + (ax*sin(theta) + ay*cos(theta))*dt
+        self.x[4] = self.x[4] + wz*dt
+        self.x[5] = wz
+
+
+    def f_jacobian(self, dt):
+        """ Compute jacobian F (df/dx)
+
+        Parameters
+        ----------
+        dt : int
+
+        """    
+        F = np.array(
+            [[1, dt, 0, 0, 0, 0],
+             [0, 1, 0, 0, 0, 0],
+             [0, 0, 1, dt, 0, 0],
+             [0, 0, 0, 1, 0, 0],
+             [0, 0, 0, 0, 1, 0],
+             [0, 0, 0, 0, 0, 0]])
+
+        return F
+
+    def v_jacobian(self, theta, dt):
+        """ Compute jacobian V (df/du)
+
+        Parameters
+        ----------
+        dt : int
+
+        """    
+        V = np.array(
+            [[cos(theta)*0.5*dt**2, -sin(theta)*0.5*dt**2, 0],
+             [cos(theta)*dt, -sin(theta)*dt, 0],
+             [sin(theta)*0.5*dt**2, cos(theta)*0.5*dt**2, 0],
+             [sin(theta)*dt, cos(theta)*dt, 0],
+             [0, 0, 0],
+             [0, 0, 1]])
+
+        return V
+
+    def predict(self, u,dt):
+        theta = self.x[4]
+        self.f(u, dt)
+
+        F = self.f_jacobian(dt)
+        V = self.v_jacobian(theta, dt)
+
+        # covariance of motion noise in control space
+        #TODO ajustar M
+        # M = array([[0.5**2, 0, 0], 
+        #            [0, 0.5**2, 0],
+        #            [0, 0, 0.7**2]])
+        M = array([[0, 0, 0], 
+                   [0, 0, 0],
+                   [0, 0, 0]])
+        VMVT = dot(V,M).dot(V.T)
+        FPFT = dot(F,self.P).dot(F.T)
+        self.P = FPFT + VMVT

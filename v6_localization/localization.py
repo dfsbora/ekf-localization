@@ -11,13 +11,13 @@ import numpy as np
 # Debug variables
 DEBUG = 1
 DEBUG_DETAIL = 0
-PRINT_STEP = 20
+PLOT = 0
+PRINT_STEP = 60
 
 # Execution variables
 N = 120
 TIME_SLEEP = 0.5
-CALIBRATION_TIME = 60
-
+CALIBRATION_TIME = 10
 
 
 #########################################################
@@ -81,11 +81,11 @@ std_bearing = 0.5
 
 # Filter parameters initialization
 # State
-ekf.x = np.array([[1.5,0,0,0,0,0]]).T
+ekf.x = np.array([[2.0,0,0,0,0,0]]).T
 # Uncertainty covariance
 ekf.P *= 0.5
 # Process Uncertainty
-ekf.Q *= 2.
+ekf.Q *= 0.5
 # Measurement uncertainty
 ekf.R = np.diag([std_range**2, std_bearing**2])
 
@@ -102,19 +102,38 @@ if DEBUG:
 	print "IMU calibrated"
 	print "\n\n"
 
+x_prior_array = []
+p_prior_array = []
+x_post_array = []
+p_post_array = []
+
+
+time.sleep(TIME_SLEEP)
+
+
+move_id = ekf.move()
 
 # LOCALIZATION LOOP
-for i in range(N):	
-	time.sleep(TIME_SLEEP)
-
+#for i in range(N):	
+i=0
+while ekf.motion_proxy.moveIsActive():
 	# PREDICT
-	ekf.predict()
+	acc, gyro = ekf.read_sensors()
+	ekf.compensate_bias(acc,gyro)
+
+	u = np.array([[ekf.acc[0][0], ekf.acc[1][0], ekf.gyro[2][0]]]).T
+	ekf.predict(u,dt=0.5)
+
 
 	if (i % PRINT_STEP) == 0 and DEBUG:
 		print("***************")
 		print("Prediction")
 		print(ekf.x)
 		print('\n')
+
+	if PLOT:
+		x_prior_array.append(ekf.x)
+		p_prior_array.append(ekf.P)
 	
 	# UPDATE
 	detected_landmarks = ekf.read_landmarks()
@@ -145,5 +164,25 @@ for i in range(N):
 		print(ekf.x)
 		print('\n')
 
+	if PLOT:
+		x_post_array.append(ekf.x)
+		p_post_array.append(ekf.P)
+
+	time.sleep(TIME_SLEEP)
+	i += 1
+
 print("Final position: ", ekf.x)
-print("Final P: ", ekf.P)
+print("Final P: ", ekf.P[0][0])
+
+
+if PLOT:
+	import csv
+	with open("output.csv", "wb") as f:
+		writer = csv.writer(f)
+		writer.writerows(x_prior_array)
+
+
+# Robot goes to rest position
+#time.sleep(TIME_SLEEP)
+ekf.motion_proxy.waitUntilMoveIsFinished()
+ekf.motion_proxy.rest()
