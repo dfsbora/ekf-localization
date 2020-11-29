@@ -111,12 +111,13 @@ p_post_array = []
 time.sleep(TIME_SLEEP)
 
 
-move_id = ekf.move()
+#move_id = ekf.move()
 
 # LOCALIZATION LOOP
-#for i in range(N):	
-i=0
-while ekf.motion_proxy.moveIsActive():
+
+#i=0
+for i in range(N):	
+#while ekf.motion_proxy.moveIsActive():
 	# PREDICT
 	acc, gyro = ekf.read_sensors()
 	ekf.compensate_bias(acc,gyro)
