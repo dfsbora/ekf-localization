@@ -8,6 +8,11 @@ import time
 import numpy as np
 
 
+def main():
+	time.sleep(3)
+	print("Temp main")
+
+
 # Debug variables
 DEBUG = 1
 DEBUG_DETAIL = 0
