@@ -11,6 +11,8 @@ import numpy as np
 def main():
 	time.sleep(3)
 	print("Temp main")
+	ekf = RobotEKF(dt=TIME_SLEEP)
+
 
 
 # Debug variables
