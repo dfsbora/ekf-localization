@@ -28,14 +28,14 @@ class LandmarkDetector(object):
         Initialisation of qi framework and event detection.
         """
         # Get the service ALMemory.
-        self.memory = session.service("ALMemory")
+        self.mem_service = session.service("ALMemory")
         # Connect the event callback.
-        self.subscriber = self.memory.subscriber("LandmarkDetected")
-        self.subscriber.signal.connect(self.on_landmark_detected)
+        self.mem_subscriber = self.mem_service.subscriber("LandmarkDetected")
+        self.mem_subscriber.signal.connect(self.on_landmark_detected)
         # Get the services ALTextToSpeech and ALLandMarkDetection.
         self.tts = session.service("ALTextToSpeech")
-        self.landmark_detection = session.service("ALLandMarkDetection")
-        self.landmark_detection.subscribe("LandmarkDetector", 500, 0.0 )
+        self.lmark_service = session.service("ALLandMarkDetection")
+        self.lmark_service.subscribe("LandmarkDetector", 500, 0.0 )
         self.got_landmark = False
 
     def on_landmark_detected(self, value):
@@ -75,13 +75,14 @@ class LandmarkDetector(object):
                 time.sleep(1)
         except KeyboardInterrupt:
             print "Interrupted by user, stopping LandmarkDetector"
-            self.landmark_detection.unsubscribe("LandmarkDetector")
+            self.landmark_service.unsubscribe("LandmarkDetector")
             #stop
             sys.exit(0)
 
 
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
+def main():
 
 
     session = qi.Session()
