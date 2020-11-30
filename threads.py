@@ -10,7 +10,7 @@ import threading
 #https://realpython.com/python-logging/
 import logging
 #change logging level accordingly
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.NOTSET)
 
 # Adding localization code modules to library path
 sys.path.append(os.path.join(sys.path[0], 'v6_action'))

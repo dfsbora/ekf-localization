@@ -8,10 +8,7 @@ import scipy.linalg as linalg
 from copy import deepcopy
 import time
 from naoqi import ALProxy
-
-
-DEBUG = 1
-DEBUG_DETAIL = 0
+import logging
 
 class RobotEKF(EKF):
     def __init__(self, dt,session):
@@ -29,24 +26,15 @@ class RobotEKF(EKF):
         robotIP = "nao.local"
         PORT = 9559
 
-        self.mem_service = session.service("ALMemory")
-        self.lmark_service = session.service("ALLandMarkDetection")    
-        self.motion_service = session.service("ALMotion")
+        try:
+            self.mem_service = session.service("ALMemory")
+            self.lmark_service = session.service("ALLandMarkDetection")    
+            self.motion_service = session.service("ALMotion")
+        except Exception, e:
+            logging.error("Error when creating services: %s", e)
+            exit(1)
 
-        # try: 
-        #     self.motion_proxy  = ALProxy("ALMotion", robotIP, PORT)
-        #     #self.mem_proxy = ALProxy("ALMemory",robotIP, PORT)
-        #     #self.lmark_proxy = ALProxy("ALLandMarkDetection", robotIP, PORT)
-        #     #self.mem_value = "LandmarkDetected"
 
-        #     self.mem_service = session.service("ALMemory")
-        #     self.mem_subscriber = mem_service.subscriber("LandmarkDetected")
-        #     self.lmark_service = session.service("ALLandMarkDetection")
-
-        # except Exception, e:
-        #     print "Error when creating proxies"
-        #     print str(e)
-        #     exit(1)
 
         # IMU
         # Create gyroscope and accelerometer atributes
@@ -71,9 +59,11 @@ class RobotEKF(EKF):
         calibration_time : int
             Duration of calibration
         """
+        logging.info("Starting calibration...")
 
         self.motion_service.setStiffnesses("Body", 1.0)
         self.motion_service.moveInit()
+
 
         acc_sum = np.array([[0., 0., 0.]]).T
         gyro_sum = np.array([[0., 0., 0.]]).T
@@ -81,7 +71,7 @@ class RobotEKF(EKF):
         i = 0
         initial_time =  time.time()
 
-        # Auxiliar time variable to print calibration status
+        # Auxiliar time variable to log calibration status
         counter_prev = time.time()
 
         while (time.time() - initial_time) < calibration_time:
@@ -91,10 +81,9 @@ class RobotEKF(EKF):
             i = i+1
 
             if (time.time() - counter_prev) > 30:
-                if DEBUG:
-                    print("Calibration in progress")
-                    print("Acc reading:", acc)
-                    print("Gyro reading:", gyro)
+                logging.info("Calibration in progress...")
+                logging.debug("Acc reading: %s", acc)
+                logging.debug("Gyro reading: %s", gyro)
                 counter_prev=time.time()
 
         acc_bias = acc_sum/i
@@ -103,9 +92,8 @@ class RobotEKF(EKF):
         self.acc_bias = acc_bias #TODO retirar gravidade daqui
         self.gyro_bias = gyro_bias
 
-        if DEBUG:
-            print("Acc bias: ", acc_bias)
-            print("Gyro bias: ", gyro_bias)
+        logging.debug("Acc bias: %s", acc_bias)
+        logging.debug("Gyro bias: %s", gyro_bias)
 
 
     def get_vel_pos(self):
@@ -179,11 +167,8 @@ class RobotEKF(EKF):
                     landmark = [mark_id, distance, angle]
                     landmarks.append(landmark)
 
-                    if DEBUG_DETAIL:
-                        print "*********"
-                        print "Landmark reading"
-                        print "Distance: %.2f" % (distance)
-                        print "Angle:  %.1f" % (angle)
+                    logging.debug("Landmark distance: %s", distance)
+                    logging.debug("Landmark angle: %s", angle)
 
             except Exception:
                 pass
@@ -215,9 +200,8 @@ class RobotEKF(EKF):
 
         hx = np.array([[distance, angle]]).T
 
-        if DEBUG_DETAIL:
-            print("x in measurement space: ", hx)
-            print("\n")
+        logging.debug("x in measurement space: %s", hx)
+
 
         return hx
 
@@ -243,9 +227,7 @@ class RobotEKF(EKF):
         H = np.array([[dx/distance , 0, dy/distance, 0, 0, 0],
             [dy/hyp , 0, dx/hyp, 0, -1, 0]])
 
-        if DEBUG_DETAIL:
-            print("H jacobian: ", H)
-            print("\n")
+        logging.debug("H jacobian: %s", H)
 
         return H
 
@@ -272,10 +254,7 @@ class RobotEKF(EKF):
         if y[1] > np.pi:             # move to [-pi, pi)
             y[1] -= 2 * np.pi
 
-        if DEBUG_DETAIL:
-            print("Residual")
-            print(y)
-            print("\n")
+        logging.debug("Residual: %s", y)
         return y
 
 
@@ -348,10 +327,7 @@ class RobotEKF(EKF):
         self.SI = linalg.inv(self.S)
         self.K = PHT.dot(self.SI)
 
-        if DEBUG_DETAIL:
-            print("Kalman gain")
-            print(self.K)
-            print("\n")
+        logging.debug("Kalman gain: %s", self.K)
 
         #Calculate residual using defined residual function
         hx = self.h(lmark_real_pos)

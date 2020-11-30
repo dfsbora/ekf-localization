@@ -8,6 +8,9 @@ import time
 import numpy as np
 import qi
 import unboard
+import logging
+
+logging.basicConfig(level=unboard.log_level)
 
 session = qi.Session()
 
@@ -16,8 +19,6 @@ def initialize():
 
 def main():
 	# Debug variables
-	DEBUG = 1
-	DEBUG_DETAIL = 0
 	PLOT = 0
 	PRINT_STEP = 50
 
@@ -32,13 +33,14 @@ def main():
 	field_map[85] = np.array([[0,0]]).T
 
 	# Create instance of robot filter
+	logging.info("Creating RobotEKF object...")
 	ekf = RobotEKF(dt=0.5, session=session)
-	if DEBUG:
-		print "RobotEKF Object created"
+	logging.debug("RobotEKF object created!")
 
 
 	# FILTER INITIALIZATION
 	# Variances
+	logging.info("Initializing filter parameters...")
 	std_range = 0.5
 	std_bearing = 0.5
 
@@ -52,16 +54,13 @@ def main():
 	# Measurement uncertainty
 	ekf.R = np.diag([std_range**2, std_bearing**2])
 
-	if DEBUG:
-		print "Parameters initialized"
+	logging.debug("Filter parameters initialized!")
 
 
 	# CALIBRATION
 	# Calculate gyroscope and accelerometer bias
 	ekf.calibration(calibration_time=CALIBRATION_TIME)
-	if DEBUG:
-		print "IMU calibrated"
-		print "\n\n"
+	logging.debug("IMU calibrated!")
 
 
 	x_prior_array = []
@@ -84,11 +83,12 @@ def main():
 		ekf.predict(u,dt=0.5)
 
 
-		if (i % PRINT_STEP) == 0 and DEBUG:
-			print("***************")
-			print("Prediction")
-			print(ekf.x)
-			print('\n')
+		if (i % PRINT_STEP) == 0:
+			logging.debug("**********")
+			logging.debug("Prediction")
+			logging.debug(ekf.x)
+			logging.debug("**********")
+	
 
 		if PLOT:
 			x_prior_array.append(ekf.x)
@@ -108,8 +108,7 @@ def main():
 		for lmark in detected_landmarks:
 			lmark_id = lmark[0]
 
-			if DEBUG_DETAIL:
-				print("Detected landmark number: ", lmark_id)
+			logging.debug("Detected landmark number: %s", lmark_id)
 
 			# Create measurement array as [distance, angle]
 			z = np.array([[ lmark[1], lmark[2] ]]).T
@@ -119,10 +118,11 @@ def main():
 
 	        ekf.update(z, lmark_real_pos)
 
-		if (i % PRINT_STEP) == 0 and DEBUG:
-			print("Update")
-			print(ekf.x)
-			print('\n')
+		if (i % PRINT_STEP) == 0:
+			logging.debug("**********")
+			logging.debug("Update")
+			logging.debug(ekf.x)
+			logging.debug("**********")
 
 		if PLOT:
 			x_post_array.append(ekf.x)
@@ -131,8 +131,8 @@ def main():
 		time.sleep(TIME_SLEEP)
 		i += 1
 
-	print("Final position: ", ekf.x)
-	print("Final P: ", ekf.P[0][0])
+	logging.info("Final position: %s", ekf.x)
+	logging.info("Final P: %s", ekf.P[0][0])
 
 
 	if PLOT:
