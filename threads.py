@@ -19,7 +19,7 @@ sys.path.append(os.path.join(sys.path[0], 'v6_localization'))
 
 # Importing localization code modules
 import action
-import teste
+import localization
 
 
 session = qi.Session()
@@ -33,8 +33,9 @@ except RuntimeError:
     sys.exit(1)
 
 action.session = session
-teste.session = session
+localization.session = session
 
+localization.initialize()
 
 try:
     logging.info("Starting action thread ...")
@@ -44,13 +45,13 @@ try:
 
     
     logging.info("Starting localization thread ...")
-    teste_thread = threading.Thread(target=teste.main)
-    teste_thread.start()
+    localization_thread = threading.Thread(target=localization.main)
+    localization_thread.start()
     logging.debug("Localization thread started!")
 
 
     action_thread.join()
-    teste_thread.join()
+    localization_thread.join()
 
 except:
     sys.exit(1)

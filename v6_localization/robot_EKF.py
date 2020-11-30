@@ -14,10 +14,9 @@ DEBUG = 1
 DEBUG_DETAIL = 0
 
 class RobotEKF(EKF):
-    def __init__(self, dt):
+    def __init__(self, dt,session):
         
         EKF.__init__(self, 6, 2)
-
         self.F = np.array(
             [[1, dt, 0, 0, 0, 0],
              [0,1,0,0,0,0],
@@ -30,16 +29,24 @@ class RobotEKF(EKF):
         robotIP = "nao.local"
         PORT = 9559
 
-        try: 
-            self.motion_proxy  = ALProxy("ALMotion", robotIP, PORT)
-            self.mem_proxy = ALProxy("ALMemory",robotIP, PORT)
-            self.lmark_proxy = ALProxy("ALLandMarkDetection", robotIP, PORT)
-            self.mem_value = "LandmarkDetected"
+        self.mem_service = session.service("ALMemory")
+        self.lmark_service = session.service("ALLandMarkDetection")    
+        self.motion_service = session.service("ALMotion")
 
-        except Exception, e:
-            print "Error when creating proxies"
-            print str(e)
-            exit(1)
+        # try: 
+        #     self.motion_proxy  = ALProxy("ALMotion", robotIP, PORT)
+        #     #self.mem_proxy = ALProxy("ALMemory",robotIP, PORT)
+        #     #self.lmark_proxy = ALProxy("ALLandMarkDetection", robotIP, PORT)
+        #     #self.mem_value = "LandmarkDetected"
+
+        #     self.mem_service = session.service("ALMemory")
+        #     self.mem_subscriber = mem_service.subscriber("LandmarkDetected")
+        #     self.lmark_service = session.service("ALLandMarkDetection")
+
+        # except Exception, e:
+        #     print "Error when creating proxies"
+        #     print str(e)
+        #     exit(1)
 
         # IMU
         # Create gyroscope and accelerometer atributes
@@ -51,7 +58,7 @@ class RobotEKF(EKF):
 
 
     def move(self):
-        move_id = self.motion_proxy.post.moveTo(1.0,0,0, _async=True)
+        move_id = self.motion_service.post.moveTo(1.0,0,0, _async=True)
         #move_id = self.motion_proxy.moveTo(1.0,0,0)#, _async=True)
         return move_id
 
@@ -65,8 +72,8 @@ class RobotEKF(EKF):
             Duration of calibration
         """
 
-        self.motion_proxy.setStiffnesses("Body", 1.0)
-        self.motion_proxy.moveInit()
+        self.motion_service.setStiffnesses("Body", 1.0)
+        self.motion_service.moveInit()
 
         acc_sum = np.array([[0., 0., 0.]]).T
         gyro_sum = np.array([[0., 0., 0.]]).T
@@ -110,13 +117,13 @@ class RobotEKF(EKF):
     def read_sensors(self):
         """ Read IMU sensors data
         """
-        accX = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/AccelerometerX/Sensor/Value")
-        accY = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/AccelerometerY/Sensor/Value")
-        accZ = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/AccelerometerZ/Sensor/Value")
+        accX = self.mem_service.getData("Device/SubDeviceList/InertialSensor/AccelerometerX/Sensor/Value")
+        accY = self.mem_service.getData("Device/SubDeviceList/InertialSensor/AccelerometerY/Sensor/Value")
+        accZ = self.mem_service.getData("Device/SubDeviceList/InertialSensor/AccelerometerZ/Sensor/Value")
 
-        gyroX = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/GyroscopeX/Sensor/Value")
-        gyroY = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/GyroscopeY/Sensor/Value")
-        gyroZ = self.mem_proxy.getData("Device/SubDeviceList/InertialSensor/GyroscopeZ/Sensor/Value")
+        gyroX = self.mem_service.getData("Device/SubDeviceList/InertialSensor/GyroscopeX/Sensor/Value")
+        gyroY = self.mem_service.getData("Device/SubDeviceList/InertialSensor/GyroscopeY/Sensor/Value")
+        gyroZ = self.mem_service.getData("Device/SubDeviceList/InertialSensor/GyroscopeZ/Sensor/Value")
 
         acc = np.array([[accX,accY,accZ]]).T 
         gyro = np.array([[gyroX,gyroY,gyroZ]]).T 
@@ -148,7 +155,7 @@ class RobotEKF(EKF):
         """
 
         # Copy memory content
-        val = self.mem_proxy.getData(self.mem_value, 0)
+        val = self.mem_service.getData("LandmarkDetected", 0)
 
         landmarks = None
 
