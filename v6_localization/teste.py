@@ -42,6 +42,14 @@ class LandmarkDetector(object):
         """
         Callback for event LandmarkDetected.
         """
+        print("\n")
+        print("*********")
+        val = self.mem_service.getData("LandmarkDetected", 0)
+        try:
+            print("val ", val)
+        except:
+            pass
+
         if value == []:  # empty value when the landmark disappears
             self.got_landmark = False
         elif not self.got_landmark:  # only speak the first time a landmark appears
@@ -81,21 +89,12 @@ class LandmarkDetector(object):
 
 
 
-#if __name__ == "__main__":
+session = qi.Session()
 def main():
 
 
-    session = qi.Session()
 
-    try:
-        session.connect("tcp://nao.local:9559") 
-        logging.debug("Connected")
 
-    except RuntimeError:
-        logging.exception("Can't connect to Naoqi")
-        sys.exit(1)
-
-    
 
     landmark_detector = LandmarkDetector(session)
     landmark_detector.run()
