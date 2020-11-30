@@ -7,7 +7,6 @@ from numpy.random import rand
 import scipy.linalg as linalg
 from copy import deepcopy
 import time
-from naoqi import ALProxy
 import logging
 
 class RobotEKF(EKF):
@@ -22,10 +21,7 @@ class RobotEKF(EKF):
              [0,0,0,0,1,dt],
              [0,0,0,0,0,1]])
 
-        # INITIALIZE PROXIES
-        robotIP = "nao.local"
-        PORT = 9559
-
+        # INITIALIZE SERVICES
         try:
             self.mem_service = session.service("ALMemory")
             self.lmark_service = session.service("ALLandMarkDetection")    
@@ -34,8 +30,6 @@ class RobotEKF(EKF):
             logging.error("Error when creating services: %s", e)
             exit(1)
 
-
-
         # IMU
         # Create gyroscope and accelerometer atributes
         self.acc_bias = np.zeros((3, 1))
@@ -43,12 +37,6 @@ class RobotEKF(EKF):
 
         self.acc = np.zeros((3, 1))        
         self.gyro = np.zeros((3, 1))
-
-
-    def move(self):
-        move_id = self.motion_service.post.moveTo(1.0,0,0, _async=True)
-        #move_id = self.motion_proxy.moveTo(1.0,0,0)#, _async=True)
-        return move_id
 
 
     def calibration(self,calibration_time=120):
