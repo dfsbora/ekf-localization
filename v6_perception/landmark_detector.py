@@ -1,8 +1,6 @@
 #! /usr/bin/env python
 # -*- encoding: UTF-8 -*-
 
-"""Example: Demonstrates a way to localize the robot with ALLandMarkDetection"""
-
 import qi
 import time
 import sys
@@ -15,19 +13,23 @@ import unboard
 
 
 class LandmarkDetector(object):
-    """
-    We first instantiate a proxy to the ALLandMarkDetection module
-    Note that this module should be loaded on the robot's naoqi.
-    The module output its results in ALMemory in a variable
-    called "LandmarkDetected".
-    We then read this ALMemory value and check whether we get
-    interesting things.
-    After that we get the related position of the landmark compared to robot.
+    """ Implements a NAOmark detector
+
+    Intantiate a proxy to the ALLandMarkDetection module
+    Read ALMemory "LandmarkDetected" value and check whether a landmark was detected
+    After that write on unboard the position of landmark in relation to robot
+
+    Parameters
+    ----------  
+
+    session : 
+        session
+
     """
 
     def __init__(self, session):
         """
-        Initialisation of qi framework and event detection.
+        Initialisation of qi framework, services and event detection.
         """
         super(LandmarkDetector, self).__init__()
 
@@ -36,38 +38,38 @@ class LandmarkDetector(object):
         # Connect the event callback.
         self.mem_subscriber = self.mem_service.subscriber("LandmarkDetected")
         self.mem_subscriber.signal.connect(self.on_landmark_detected)
-        # Get the services ALTextToSpeech, ALLandMarkDetection and ALMotion.
+        # Get the services ALLandMarkDetection and ALMotion.
         #self.tts = session.service("ALTextToSpeech")
         self.landmark_detection = session.service("ALLandMarkDetection")
         self.motion_service = session.service("ALMotion")
         self.landmark_detection.subscribe("LandmarkDetector", 500, 0.0 )
-        #self.got_landmark = False
         # Set here the size of the landmark in meters.
-        self.landmarkTheoreticalSize = 0.145 #in meters
+        self.landmarkTheoreticalSize = 0.145 #printed naomarks size
         # Set here the current camera ("CameraTop" or "CameraBottom").
         self.currentCamera = "CameraTop"
 
-
-    def read():
-        val = self.mem_service.getData("LandmarkDetected", 0)
-        print(val)
 
     def on_landmark_detected(self, markData):
         """
         Callback for event LandmarkDetected.
         """
 
-        if markData == []:  # empty value when the landmark disappears
+        # Check if landmark was detected
+        if markData == []:  
             unboard.got_landmark = False
             unboard.landmarks = None
+
         else: 
             unboard.got_landmark = True
 
             mark_info_array = markData[1]
             mark_pos_array = []
 
-
+            # Loop over each detected feature
             for mark_info in mark_info_array:
+
+                # Retrieve landmark id (number)
+                landmark_id = mark_info[1]
 
                 # Retrieve landmark center position in radians.
                 wzCamera = mark_info[0][1]
@@ -96,15 +98,11 @@ class LandmarkDetector(object):
                 landmark_x = robotToLandmark.r1_c4
                 landmark_y = robotToLandmark.r2_c4
                 
-                mark_pos = [landmark_x, landmark_y]
+                mark_pos = [landmark_id, landmark_x, landmark_y]
                 mark_pos_array.append(mark_pos)
 
-
-            logging.debug("landmarks")
-            logging.debug(mark_pos_array)
+            #Write on unboard
             unboard.landmarks = mark_pos_array
-
-
 
 
     def run(self):

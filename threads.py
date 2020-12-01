@@ -6,11 +6,10 @@ import sys
 import os
 import threading
 
-#logging information
-#https://realpython.com/python-logging/
+
 import logging
-#change logging level accordingly
 logging.basicConfig(level=logging.NOTSET)
+
 
 # Adding localization code modules to library path
 sys.path.append(os.path.join(sys.path[0], 'v6_action'))
@@ -24,8 +23,8 @@ import localization
 import landmark_detector
 
 
+# Connect to session
 session = qi.Session()
-
 try:
     session.connect("tcp://nao.local:9559") 
     logging.debug("Connected")
@@ -38,26 +37,22 @@ action.session = session
 localization.session = session
 landmark_detector.session = session
 
+
 localization.initialize()
+
 
 try:
     logging.info("Starting action thread ...")
     action_thread = threading.Thread(target=action.main)
     action_thread.start()
-    logging.debug("Action thread started!")
-
     
     logging.info("Starting localization thread ...")
     localization_thread = threading.Thread(target=localization.main)
     localization_thread.start()
-    logging.debug("Localization thread started!")
-
 
     logging.info("Starting landmark detector thread ...")
     landmark_detector_thread = threading.Thread(target=landmark_detector.main)
     landmark_detector_thread.start()
-    logging.debug("Landmark detector thread started!")
-
 
     action_thread.join()
     localization_thread.join()
