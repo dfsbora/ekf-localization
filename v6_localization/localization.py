@@ -19,7 +19,7 @@ def initialize():
 def main():
 	# Debug variables
 	PLOT = 0
-	PRINT_STEP = 50
+	PRINT_STEP = 100
 
 	# Execution variables
 	N = 120
@@ -78,8 +78,7 @@ def main():
 		u = np.array([[ekf.acc[0][0], ekf.acc[1][0], ekf.gyro[2][0]]]).T
 		ekf.predict(u,dt=0.5)
 
-
-		if (i % PRINT_STEP) == 0:
+		if (i%PRINT_STEP)==0:
 			logging.debug("**********")
 			logging.debug("Prediction")
 			logging.debug(ekf.x)
@@ -115,7 +114,7 @@ def main():
 	        ekf.update(z, lmark_real_pos)
 
 
-		if (i % PRINT_STEP) == 0:
+		if (i%PRINT_STEP)==0:
 			logging.debug("**********")
 			logging.debug("Update")
 			logging.debug(ekf.x)
@@ -125,8 +124,8 @@ def main():
 			x_post_array.append(ekf.x)
 			p_post_array.append(ekf.P)
 
-		time.sleep(TIME_SLEEP)
-		i += 1
+		#time.sleep(TIME_SLEEP)
+		i = i + 1
 
 	logging.info("Final position: %s", ekf.x)
 	logging.info("Final P: %s", ekf.P[0][0])

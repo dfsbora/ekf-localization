@@ -142,7 +142,7 @@ class RobotEKF(EKF):
 
         hx = np.array([[distance, angle]]).T
 
-        logging.debug("x in measurement space: %s", hx)
+        #logging.debug("x in measurement space: %s", hx)
 
 
         return hx
@@ -169,7 +169,7 @@ class RobotEKF(EKF):
         H = np.array([[dx/distance , 0, dy/distance, 0, 0, 0],
             [dy/hyp , 0, dx/hyp, 0, -1, 0]])
 
-        logging.debug("H jacobian: %s", H)
+        #logging.debug("H jacobian: %s", H)
 
         return H
 
@@ -196,7 +196,7 @@ class RobotEKF(EKF):
         if y[1] > np.pi:             # move to [-pi, pi)
             y[1] -= 2 * np.pi
 
-        logging.debug("Residual: %s", y)
+        #logging.debug("Residual: %s", y)
         return y
 
 
@@ -269,7 +269,7 @@ class RobotEKF(EKF):
         self.SI = linalg.inv(self.S)
         self.K = PHT.dot(self.SI)
 
-        logging.debug("Kalman gain: %s", self.K)
+        #logging.debug("Kalman gain: %s", self.K)
 
         #Calculate residual using defined residual function
         hx = self.h(lmark_real_pos)
