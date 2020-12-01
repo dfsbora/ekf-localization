@@ -111,7 +111,6 @@ class LandmarkDetector(object):
         """
         Loop on, wait for events until manual interruption.
         """
-        print "Starting LandmarkDetector"
         try:
             while True:
                 time.sleep(1)

@@ -10,6 +10,4 @@ is_calibrated = False
 ########################
 
 got_landmark = False
-landmark_x = None
-landmark_y = None
-landmark_z = None
+landmarks = None
