@@ -10,7 +10,6 @@ import qi
 import unboard
 import logging
 
-logging.basicConfig(level=unboard.log_level)
 
 session = qi.Session()
 
@@ -95,38 +94,38 @@ def main():
 			p_prior_array.append(ekf.P)
 		
 		
-		# UPDATE
-		detected_landmarks = ekf.read_landmarks()
+		# # UPDATE
+		# detected_landmarks = ekf.read_landmarks()
 
-		# No feature detected
-		if detected_landmarks is None:
-			# Update step copies predicted values
-			ekf.update(z=detected_landmarks)
-			continue
+		# # No feature detected
+		# if detected_landmarks is None:
+		# 	# Update step copies predicted values
+		# 	ekf.update(z=detected_landmarks)
+		# 	continue
 
-		# Update filter for each detected feature
-		for lmark in detected_landmarks:
-			lmark_id = lmark[0]
+		# # Update filter for each detected feature
+		# for lmark in detected_landmarks:
+		# 	lmark_id = lmark[0]
 
-			logging.debug("Detected landmark number: %s", lmark_id)
+		# 	logging.debug("Detected landmark number: %s", lmark_id)
 
-			# Create measurement array as [distance, angle]
-			z = np.array([[ lmark[1], lmark[2] ]]).T
+		# 	# Create measurement array as [distance, angle]
+		# 	z = np.array([[ lmark[1], lmark[2] ]]).T
 
-			# Get landmark gt position
-			lmark_real_pos = field_map.get(lmark_id) 
+		# 	# Get landmark gt position
+		# 	lmark_real_pos = field_map.get(lmark_id) 
 
-	        ekf.update(z, lmark_real_pos)
+	 #        ekf.update(z, lmark_real_pos)
 
-		if (i % PRINT_STEP) == 0:
-			logging.debug("**********")
-			logging.debug("Update")
-			logging.debug(ekf.x)
-			logging.debug("**********")
+		# if (i % PRINT_STEP) == 0:
+		# 	logging.debug("**********")
+		# 	logging.debug("Update")
+		# 	logging.debug(ekf.x)
+		# 	logging.debug("**********")
 
-		if PLOT:
-			x_post_array.append(ekf.x)
-			p_post_array.append(ekf.P)
+		# if PLOT:
+		# 	x_post_array.append(ekf.x)
+		# 	p_post_array.append(ekf.P)
 
 		time.sleep(TIME_SLEEP)
 		i += 1
