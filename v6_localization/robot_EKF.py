@@ -69,8 +69,6 @@ class RobotEKF(EKF):
 
             if (time.time() - counter_prev) > 30:
                 logging.info("Calibration in progress...")
-                logging.debug("Acc reading: %s", acc)
-                logging.debug("Gyro reading: %s", gyro)
                 counter_prev=time.time()
 
         acc_bias = acc_sum/i
@@ -300,14 +298,14 @@ class RobotEKF(EKF):
         u : 
             
         """
-        # ax = u[0][0]
-        # ay = u[1][0]
-        # wz = u[2][0]
-        # theta = self.x[4]
-        ax = 0
-        ay = 0
-        wz = 0
-        theta = 0
+        ax = u[0][0]
+        ay = u[1][0]
+        wz = u[2][0]
+        theta = self.x[4]
+        # ax = 0
+        # ay = 0
+        # wz = 0
+        # theta = 0
 
         self.x[0] = self.x[0] + self.x[1]*dt + 0.5*(ax*cos(theta) - ay*sin(theta))*dt**2
         self.x[1] = self.x[1] + (ax*cos(theta) - ay*sin(theta))*dt

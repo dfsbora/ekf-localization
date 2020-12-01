@@ -28,8 +28,8 @@ def main():
 
 	# MAP
 	# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
-	field_map =  { "85":np.array([[0,0]]).T }
-	#field_map[85] = np.array([[0,0]]).T
+	field_map =  { 85: np.array([[0,0]]).T ,  64: np.array([[0,25]]).T}
+	#field_map[85] = 
 
 	# Create instance of robot filter
 	logging.info("Creating RobotEKF object...")
@@ -39,7 +39,7 @@ def main():
 	# FILTER INITIALIZATION
 	# Variances
 	logging.info("Initializing filter parameters...")
-	std_range = 0.5
+	std_range = 0.1
 	std_bearing = 0.5
 
 	# Filter parameters initialization
@@ -101,35 +101,32 @@ def main():
 			ekf.update(z=None)
 			continue
 
-		# detected_landmarks = unboard.landmarks
-		# # Update filter for each detected feature
-		# for lmark in detected_landmarks:
-		# 	lmark_id = lmark[0]
+		detected_landmarks = unboard.landmarks
+		# Update filter for each detected feature
+		for lmark in detected_landmarks:
+			lmark_id = lmark[0][0]
 
-		# 	logging.debug("Detected landmark number: %s", lmark_id)
+			# Create measurement array as [x, y]
+			z = np.array([[ lmark[1], lmark[2] ]]).T
 
-		# 	# Create measurement array as [x, y]
-		# 	z = np.array([[ lmark[1], lmark[2] ]]).T
+			# Get landmark gt position
+			lmark_real_pos = field_map.get(lmark_id) 
 
-		# 	# Get landmark gt position
-		# 	lmark_real_pos = field_map.get(lmark_id) 
-
-	 #        ekf.update(z, lmark_real_pos)
+	        ekf.update(z, lmark_real_pos)
 
 
+		if (i % PRINT_STEP) == 0:
+			logging.debug("**********")
+			logging.debug("Update")
+			logging.debug(ekf.x)
+			logging.debug("**********")
 
-		# if (i % PRINT_STEP) == 0:
-		# 	logging.debug("**********")
-		# 	logging.debug("Update")
-		# 	logging.debug(ekf.x)
-		# 	logging.debug("**********")
+		if PLOT:
+			x_post_array.append(ekf.x)
+			p_post_array.append(ekf.P)
 
-		# if PLOT:
-		# 	x_post_array.append(ekf.x)
-		# 	p_post_array.append(ekf.P)
-
-		# time.sleep(TIME_SLEEP)
-		# i += 1
+		time.sleep(TIME_SLEEP)
+		i += 1
 
 	logging.info("Final position: %s", ekf.x)
 	logging.info("Final P: %s", ekf.P[0][0])
