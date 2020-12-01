@@ -46,9 +46,6 @@ class LandmarkDetector(object):
         self.landmarkTheoreticalSize = 0.145 #in meters
         # Set here the current camera ("CameraTop" or "CameraBottom").
         self.currentCamera = "CameraTop"
-        self.landmark_x = None
-        self.landmark_y = None
-        self.landmark_z = None
 
 
     def read():
@@ -61,48 +58,51 @@ class LandmarkDetector(object):
         """
 
         if markData == []:  # empty value when the landmark disappears
-            # self.got_landmark = False
-            # self.landmark_x = None
-            # self.landmark_y = None
-            # self.landmark_z = None
-
             unboard.got_landmark = False
-            unboard.landmark_x = None
-            unboard.landmark_y = None
-            unboard.landmark_z = None
+            unboard.landmarks = None
         else: 
             unboard.got_landmark = True
-            #print "I saw a landmark! "
-            #self.tts.say("I saw a landmark! ")
 
-            # Retrieve landmark center position in radians.
-            wzCamera = markData[1][0][0][1]
-            wyCamera = markData[1][0][0][2]
+            mark_info_array = markData[1]
+            mark_pos_array = []
 
-            # Retrieve landmark angular size in radians.
-            angularSize = markData[1][0][0][3]
 
-            # Compute distance to landmark.
-            distanceFromCameraToLandmark = self.landmarkTheoreticalSize / ( 2 * math.tan( angularSize / 2))
+            for mark_info in mark_info_array:
 
-            # Get current camera position in NAO space.
-            transform = self.motion_service.getTransform(self.currentCamera, 2, True)
-            transformList = almath.vectorFloat(transform)
-            robotToCamera = almath.Transform(transformList)
+                # Retrieve landmark center position in radians.
+                wzCamera = mark_info[0][1]
+                wyCamera = mark_info[0][2]
 
-            # Compute the rotation to point towards the landmark.
-            cameraToLandmarkRotationTransform = almath.Transform_from3DRotation(0, wyCamera, wzCamera)
+                # Retrieve landmark angular size in radians.
+                angularSize = mark_info[0][3]
 
-            # Compute the translation to reach the landmark.
-            cameraToLandmarkTranslationTransform = almath.Transform(distanceFromCameraToLandmark, 0, 0)
+                # Compute distance to landmark.
+                distanceFromCameraToLandmark = self.landmarkTheoreticalSize / ( 2 * math.tan( angularSize / 2))
 
-            # Combine all transformations to get the landmark position in NAO space.
-            robotToLandmark = robotToCamera * cameraToLandmarkRotationTransform *cameraToLandmarkTranslationTransform
+                # Get current camera position in NAO space.
+                transform = self.motion_service.getTransform(self.currentCamera, 2, True)
+                transformList = almath.vectorFloat(transform)
+                robotToCamera = almath.Transform(transformList)
 
-            unboard.landmark_x = robotToLandmark.r1_c4
-            unboard.landmark_y = robotToLandmark.r2_c4
-            unboard.landmark_z = robotToLandmark.r3_c4
-            print("loop done")
+                # Compute the rotation to point towards the landmark.
+                cameraToLandmarkRotationTransform = almath.Transform_from3DRotation(0, wyCamera, wzCamera)
+
+                # Compute the translation to reach the landmark.
+                cameraToLandmarkTranslationTransform = almath.Transform(distanceFromCameraToLandmark, 0, 0)
+
+                # Combine all transformations to get the landmark position in NAO space.
+                robotToLandmark = robotToCamera * cameraToLandmarkRotationTransform *cameraToLandmarkTranslationTransform
+
+                landmark_x = robotToLandmark.r1_c4
+                landmark_y = robotToLandmark.r2_c4
+                
+                mark_pos = [landmark_x, landmark_y]
+                mark_pos_array.append(mark_pos)
+
+
+            logging.debug("landmarks")
+            logging.debug(mark_pos_array)
+            unboard.landmarks = mark_pos_array
 
 
 

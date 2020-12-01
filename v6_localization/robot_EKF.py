@@ -24,7 +24,7 @@ class RobotEKF(EKF):
         # INITIALIZE SERVICES
         try:
             self.mem_service = session.service("ALMemory")
-            self.lmark_service = session.service("ALLandMarkDetection")    
+            #self.lmark_service = session.service("ALLandMarkDetection")    
             self.motion_service = session.service("ALMotion")
         except Exception, e:
             logging.error("Error when creating services: %s", e)
@@ -121,47 +121,47 @@ class RobotEKF(EKF):
         self.gyro = gyro - self.gyro_bias
 
     
-    def read_landmarks(self):
-        """ Access memory to read detected landmarks information
+    # def read_landmarks(self):
+    #     """ Access memory to read detected landmarks information
         
-        Returns
-        ----------
-        landmarks : None, array
-            array containing ID, distance and angle of detected landmarks
-        """
+    #     Returns
+    #     ----------
+    #     landmarks : None, array
+    #         array containing ID, distance and angle of detected landmarks
+    #     """
 
-        # Copy memory content
-        val = self.mem_service.getData("LandmarkDetected", 0)
+    #     # Copy memory content
+    #     val = self.mem_service.getData("LandmarkDetected", 0)
 
-        landmarks = None
+    #     landmarks = None
 
-        # Check if landmarks were detected
-        if(val and isinstance(val, list) and len(val) >= 2):
+    #     # Check if landmarks were detected
+    #     if(val and isinstance(val, list) and len(val) >= 2):
 
-            landmarks = []
-            mark_info_array = val[1]
-            camera_pose = val[2] # TODO not used
+    #         landmarks = []
+    #         mark_info_array = val[1]
+    #         camera_pose = val[2] # TODO not used
         
-            try:
-                # Get info on each detected mark.
-                for mark_info in mark_info_array:
-                    # Get NAOmark id number
-                    mark_id = mark_info[1][0] 
-                    # Distance regression as function of NAOmark width 
-                    distance = 0.134*mark_info[0][3]**(-1.04) 
-                    # Angle alpha between camera bisection and detected landmark
-                    angle = np.degrees(mark_info[0][1]) 
-                    # Create array with relevant information
-                    landmark = [mark_id, distance, angle]
-                    landmarks.append(landmark)
+    #         try:
+    #             # Get info on each detected mark.
+    #             for mark_info in mark_info_array:
+    #                 # Get NAOmark id number
+    #                 mark_id = mark_info[1][0] 
+    #                 # Distance regression as function of NAOmark width 
+    #                 distance = 0.134*mark_info[0][3]**(-1.04) 
+    #                 # Angle alpha between camera bisection and detected landmark
+    #                 angle = np.degrees(mark_info[0][1]) 
+    #                 # Create array with relevant information
+    #                 landmark = [mark_id, distance, angle]
+    #                 landmarks.append(landmark)
 
-                    logging.debug("Landmark distance: %s", distance)
-                    logging.debug("Landmark angle: %s", angle)
+    #                 logging.debug("Landmark distance: %s", distance)
+    #                 logging.debug("Landmark angle: %s", angle)
 
-            except Exception:
-                pass
+    #         except Exception:
+    #             pass
 
-        return landmarks
+    #     return landmarks
 
 
     def h(self, lmark):
