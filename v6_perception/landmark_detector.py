@@ -33,20 +33,23 @@ class LandmarkDetector(object):
         """
         super(LandmarkDetector, self).__init__()
 
+        # Set here the size of the landmark in meters.
+        self.landmarkTheoreticalSize = 0.145 #printed naomarks size
+        # Set here the current camera ("CameraTop" or "CameraBottom").
+        self.currentCamera = "CameraTop"
+
         # Get the service ALMemory.
         self.mem_service = session.service("ALMemory")
         # Connect the event callback.
         self.mem_subscriber = self.mem_service.subscriber("LandmarkDetected")
         self.mem_subscriber.signal.connect(self.on_landmark_detected)
+
         # Get the services ALLandMarkDetection and ALMotion.
         #self.tts = session.service("ALTextToSpeech")
         self.landmark_detection = session.service("ALLandMarkDetection")
         self.motion_service = session.service("ALMotion")
         self.landmark_detection.subscribe("LandmarkDetector", 500, 0.0 )
-        # Set here the size of the landmark in meters.
-        self.landmarkTheoreticalSize = 0.145 #printed naomarks size
-        # Set here the current camera ("CameraTop" or "CameraBottom").
-        self.currentCamera = "CameraTop"
+
 
 
     def on_landmark_detected(self, markData):
@@ -100,6 +103,8 @@ class LandmarkDetector(object):
                 
                 mark_pos = [landmark_id, landmark_x, landmark_y]
                 mark_pos_array.append(mark_pos)
+                logging.debug("x: %s", landmark_x)
+                logging.debug("y: %s", landmark_y)
 
             #Write on unboard
             unboard.landmarks = mark_pos_array
@@ -125,3 +130,4 @@ def main():
 
     landmark_detector = LandmarkDetector(session)
     landmark_detector.run()
+
