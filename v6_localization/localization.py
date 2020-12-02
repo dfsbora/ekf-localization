@@ -19,7 +19,7 @@ def initialize():
 def main():
 	# Debug variables
 	PLOT = 0
-	PRINT_STEP = 100
+	PRINT_STEP = 500
 
 	# Execution variables
 	N = 120
@@ -28,7 +28,7 @@ def main():
 
 	# MAP
 	# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
-	field_map =  { 85: np.array([[0,0]]).T ,  64: np.array([[0,25]]).T}
+	field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[1., 1.5]]).T}
 	#field_map[85] = 
 
 	# Create instance of robot filter
@@ -39,18 +39,18 @@ def main():
 	# FILTER INITIALIZATION
 	# Variances
 	logging.info("Initializing filter parameters...")
-	std_range = 0.1
-	std_bearing = 0.5
+	std_x = 0.1
+	std_y = 0.5
 
 	# Filter parameters initialization
 	# State
-	ekf.x = np.array([[-2.5,0,-0.5,0,0,0]]).T
+	ekf.x = np.array([[0,0,0,0,0,0]]).T
 	# Uncertainty covariance
 	ekf.P *= 0.5
 	# Process Uncertainty
 	ekf.Q *= 0.5
 	# Measurement uncertainty
-	ekf.R = np.diag([std_range**2, std_bearing**2])
+	ekf.R = np.diag([std_x**2, std_y**2])
 
 
 	# CALIBRATION
@@ -93,33 +93,36 @@ def main():
 		# No feature detected
 		if unboard.got_landmark is False:
 			# Update step copies predicted values
-			logging.debug("Didnt find landmark")
+			#logging.debug("Didnt find landmark")
 			ekf.update(z=None)
 			continue
 
 		detected_landmarks = unboard.landmarks
 		# Update filter for each detected feature
-		for lmark in detected_landmarks:
-			lmark_id = lmark[0][0]
+		try:
+			for lmark in detected_landmarks:
+				lmark_id = lmark[0][0]
 
-			# Create measurement array as [x, y]
-			z = np.array([[ lmark[1], lmark[2] ]]).T
+				# Create measurement array as [x, y]
+				z = np.array([[ lmark[1], lmark[2] ]]).T
 
-			# Get landmark gt position
-			lmark_real_pos = field_map.get(lmark_id) 
+				# Get landmark gt position
+				lmark_real_pos = field_map.get(lmark_id) 
 
-	        ekf.update(z, lmark_real_pos)
-
-
-		if (i%PRINT_STEP)==0:
-
-			logging.debug("Update")
-			logging.debug(ekf.x)
+		        ekf.update(z, lmark_real_pos)
 
 
-		if PLOT:
-			x_post_array.append(ekf.x)
-			p_post_array.append(ekf.P)
+			if (i%PRINT_STEP)==0:
+
+				logging.debug("Update")
+				logging.debug(ekf.x)
+
+
+			if PLOT:
+				x_post_array.append(ekf.x)
+				p_post_array.append(ekf.P)
+		except:
+			pass
 
 		#time.sleep(TIME_SLEEP)
 		i = i + 1
