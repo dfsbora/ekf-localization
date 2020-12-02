@@ -132,15 +132,12 @@ class RobotEKF(EKF):
 
         dx = self.x[0][0] - lmark[0][0]
         dy = self.x[2][0] - lmark[1][0]
-        distance = sqrt(dx**2+dy**2)
-        landmark_angle = atan(dy/dx)
+        theta = self.x[4][0]
+        coordinates = np.array([[dx,dy]]).T
+        
+        rotation = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
 
-        #if alpha < 0:
-        #    angle = self.x[4] - landmark_angle
-        #else:
-        angle = landmark_angle - self.x[4]   # TODO Labbe faz assim apenas
-
-        hx = np.array([[distance, angle]]).T
+        hx = dot(rotation,coordinates)
 
         #logging.debug("x in measurement space: %s", hx)
 
@@ -161,13 +158,8 @@ class RobotEKF(EKF):
             jacobian of h
             
         """
-        dx = self.x[0][0] - lmark[0][0]
-        dy = self.x[2][0] - lmark[1][0]
-        hyp = dx**2+dy**2
-        distance = sqrt(hyp)
-
-        H = np.array([[dx/distance , 0, dy/distance, 0, 0, 0],
-            [dy/hyp , 0, dx/hyp, 0, -1, 0]])
+        theta = self.x[4][0]
+        H = np.array([[cos(theta),0,-sin(theta),0,0,0],[sin(theta),0,cos(theta),0,0,0]])
 
         #logging.debug("H jacobian: %s", H)
 
@@ -191,10 +183,6 @@ class RobotEKF(EKF):
         """
 
         y = (a - b)
-
-        y[1] = y[1] % (2 * np.pi)    
-        if y[1] > np.pi:             # move to [-pi, pi)
-            y[1] -= 2 * np.pi
 
         #logging.debug("Residual: %s", y)
         return y
@@ -298,14 +286,14 @@ class RobotEKF(EKF):
         u : 
             
         """
-        ax = u[0][0]
-        ay = u[1][0]
-        wz = u[2][0]
-        theta = self.x[4]
-        # ax = 0
-        # ay = 0
-        # wz = 0
-        # theta = 0
+        # ax = u[0][0]
+        # ay = u[1][0]
+        # wz = u[2][0]
+        # theta = self.x[4]
+        ax = 0
+        ay = 0
+        wz = 0
+        theta = 0
 
         self.x[0] = self.x[0] + self.x[1]*dt + 0.5*(ax*cos(theta) - ay*sin(theta))*dt**2
         self.x[1] = self.x[1] + (ax*cos(theta) - ay*sin(theta))*dt

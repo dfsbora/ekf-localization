@@ -24,7 +24,7 @@ def main():
 	# Execution variables
 	N = 120
 	TIME_SLEEP = 0.5
-	CALIBRATION_TIME = 30
+	CALIBRATION_TIME = 5
 
 	# MAP
 	# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
@@ -44,7 +44,7 @@ def main():
 
 	# Filter parameters initialization
 	# State
-	ekf.x = np.array([[2.0,0,0,0,0,0]]).T
+	ekf.x = np.array([[-2.5,0,-0.5,0,0,0]]).T
 	# Uncertainty covariance
 	ekf.P *= 0.5
 	# Process Uncertainty
@@ -79,10 +79,8 @@ def main():
 		ekf.predict(u,dt=0.5)
 
 		if (i%PRINT_STEP)==0:
-			logging.debug("**********")
 			logging.debug("Prediction")
 			logging.debug(ekf.x)
-			logging.debug("**********")
 	
 
 		if PLOT:
@@ -114,10 +112,10 @@ def main():
 
 
 		if (i%PRINT_STEP)==0:
-			logging.debug("**********")
+
 			logging.debug("Update")
 			logging.debug(ekf.x)
-			logging.debug("**********")
+
 
 		if PLOT:
 			x_post_array.append(ekf.x)

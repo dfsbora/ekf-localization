@@ -40,15 +40,16 @@ class LandmarkDetector(object):
 
         # Get the service ALMemory.
         self.mem_service = session.service("ALMemory")
-        # Connect the event callback.
-        self.mem_subscriber = self.mem_service.subscriber("LandmarkDetected")
-        self.mem_subscriber.signal.connect(self.on_landmark_detected)
 
         # Get the services ALLandMarkDetection and ALMotion.
         #self.tts = session.service("ALTextToSpeech")
         self.landmark_detection = session.service("ALLandMarkDetection")
         self.motion_service = session.service("ALMotion")
         self.landmark_detection.subscribe("LandmarkDetector", 500, 0.0 )
+
+                # Connect the event callback.
+        self.mem_subscriber = self.mem_service.subscriber("LandmarkDetected")
+        self.mem_subscriber.signal.connect(self.on_landmark_detected)
 
 
 
@@ -103,8 +104,8 @@ class LandmarkDetector(object):
                 
                 mark_pos = [landmark_id, landmark_x, landmark_y]
                 mark_pos_array.append(mark_pos)
-                logging.debug("x: %s", landmark_x)
-                logging.debug("y: %s", landmark_y)
+                #logging.debug("x: %s", landmark_x)
+                #logging.debug("y: %s", landmark_y)
 
             #Write on unboard
             unboard.landmarks = mark_pos_array
