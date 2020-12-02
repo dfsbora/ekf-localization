@@ -13,38 +13,35 @@ import logging
 
 session = qi.Session()
 
-def initialize():
-	ekf = RobotEKF(dt=0.5, session=session)
-
 def main():
-	# Debug variables
+	# Debug and auxiliar variables
 	PLOT = 0
-	PRINT_STEP = 500
-
-	# Execution variables
-	N = 120
+	PRINT_STEP = 10
 	TIME_SLEEP = 0.5
-	CALIBRATION_TIME = 5
+	CALIBRATION_TIME = 60
+
+	x_prior_array = []
+	p_prior_array = []
+	x_post_array = []
+	p_post_array = []
 
 	# MAP
 	# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
 	field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[1., 1.5]]).T}
-	#field_map[85] = 
+
 
 	# Create instance of robot filter
 	logging.info("Creating RobotEKF object...")
 	ekf = RobotEKF(dt=0.5, session=session)
 
-
 	# FILTER INITIALIZATION
 	# Variances
-	logging.info("Initializing filter parameters...")
 	std_x = 0.1
 	std_y = 0.5
 
 	# Filter parameters initialization
 	# State
-	ekf.x = np.array([[0,0,0,0,0,0]]).T
+	ekf.x = np.array([[0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1]]).T
 	# Uncertainty covariance
 	ekf.P *= 0.5
 	# Process Uncertainty
@@ -52,35 +49,36 @@ def main():
 	# Measurement uncertainty
 	ekf.R = np.diag([std_x**2, std_y**2])
 
-
 	# CALIBRATION
 	# Calculate gyroscope and accelerometer bias
 	ekf.calibration(calibration_time=CALIBRATION_TIME)
 
-
-	x_prior_array = []
-	p_prior_array = []
-	x_post_array = []
-	p_post_array = []
-
-
 	unboard.is_calibrated = True
+
 
 
 	# LOCALIZATION LOOP
 	i=0
+	prev_time = time.time()
 	while True:	
+
 		# PREDICT
+		time.sleep(.1)
+		current_time = time.time()
 		acc, gyro = ekf.read_sensors()
 		ekf.compensate_bias(acc,gyro)
 
-
-		u = np.array([[ekf.acc[0][0], ekf.acc[1][0], ekf.gyro[2][0]]]).T
-		ekf.predict(u,dt=0.5)
+		u = np.concatenate((ekf.acc,ekf.gyro),axis=0)
+		
+		dt = current_time-prev_time
+		ekf.predict(u=u,dt=dt)
+		prev_time=current_time
 
 		if (i%PRINT_STEP)==0:
 			logging.debug("Prediction")
-			logging.debug(ekf.x)
+			logging.debug("x: %s", ekf.x[0][0])
+			logging.debug("y: %s", ekf.x[2][0])
+			logging.debug("rot: %s, %s, %s", ekf.x[9][0], ekf.x[13][0], ekf.x[17][0])
 	
 
 		if PLOT:
@@ -109,13 +107,14 @@ def main():
 				# Get landmark gt position
 				lmark_real_pos = field_map.get(lmark_id) 
 
-		        ekf.update(z, lmark_real_pos)
+				ekf.update(z, lmark_real_pos)
 
 
 			if (i%PRINT_STEP)==0:
-
 				logging.debug("Update")
-				logging.debug(ekf.x)
+				logging.debug("x: %s", ekf.x[0][0])
+				logging.debug("y: %s", ekf.x[2][0])
+				logging.debug("rot: %s, %s, %s", ekf.x[9][0], ekf.x[13][0], ekf.x[17][0])
 
 
 			if PLOT:

@@ -38,8 +38,6 @@ localization.session = session
 landmark_detector.session = session
 
 
-localization.initialize()
-
 
 try:
     logging.info("Starting action thread ...")

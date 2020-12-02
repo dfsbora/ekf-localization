@@ -8,18 +8,12 @@ import scipy.linalg as linalg
 from copy import deepcopy
 import time
 import logging
+from numpy.linalg import norm
 
 class RobotEKF(EKF):
     def __init__(self, dt,session):
         
-        EKF.__init__(self, 6, 2)
-        self.F = np.array(
-            [[1, dt, 0, 0, 0, 0],
-             [0,1,0,0,0,0],
-             [0,0,1,dt,0,0],
-             [0,0,0,1,0,0],
-             [0,0,0,0,1,dt],
-             [0,0,0,0,0,1]])
+        EKF.__init__(self, 18, 2)
 
         # INITIALIZE SERVICES
         try:
@@ -67,7 +61,7 @@ class RobotEKF(EKF):
             gyro_sum = gyro_sum + gyro
             i = i+1
 
-            if (time.time() - counter_prev) > 30:
+            if (time.time() - counter_prev) > 20:
                 logging.info("Calibration in progress...")
                 counter_prev=time.time()
 
@@ -98,10 +92,11 @@ class RobotEKF(EKF):
         gyroY = self.mem_service.getData("Device/SubDeviceList/InertialSensor/GyroscopeY/Sensor/Value")
         gyroZ = self.mem_service.getData("Device/SubDeviceList/InertialSensor/GyroscopeZ/Sensor/Value")
 
-        acc = np.array([[accX,accY,accZ]]).T 
+        acc = np.array([[accX,accY,accZ]]).T  
         gyro = np.array([[gyroX,gyroY,gyroZ]]).T 
+
+        return acc, gyro
         
-        return acc, gyro 
 
     def compensate_bias(self, acc, gyro):
         """ Compensate bias on IMU reading
@@ -286,24 +281,63 @@ class RobotEKF(EKF):
         u : 
             
         """
-        # ax = u[0][0]
-        # ay = u[1][0]
-        # wz = u[2][0]
-        # theta = self.x[4]
-        ax = 0
-        ay = 0
-        wz = 0
-        theta = 0
-
-        self.x[0] = self.x[0] + self.x[1]*dt + 0.5*(ax*cos(theta) - ay*sin(theta))*dt**2
-        self.x[1] = self.x[1] + (ax*cos(theta) - ay*sin(theta))*dt
-        self.x[2] = self.x[2] + self.x[3]*dt + 0.5*(ax*sin(theta) + ay*cos(theta))*dt**2
-        self.x[3] = self.x[3] + (ax*sin(theta) + ay*cos(theta))*dt
-        self.x[4] = self.x[4] + wz*dt
-        self.x[5] = wz
+        prev = np.array([[self.x[9][0], self.x[10][0], self.x[11][0]],
+            [self.x[12][0], self.x[13][0], self.x[14][0]],
+            [self.x[15][0], self.x[16][0], self.x[17][0]]])
 
 
+        pos = np.array([[self.x[0][0],self.x[2][0],self.x[4][0]]]).T
+        vel = np.array([[self.x[1][0],self.x[3][0],self.x[5][0]]]).T
 
+        acc = np.array([[u[0][0],u[1][0],u[2][0]]]).T
+        ang_vel = np.array([[u[3][0],u[4][0],u[5][0]]]).T
+        sigma = norm(dt)*norm(ang_vel)
+        
+
+        if sigma == 0:
+            update_factor = 1
+        else:
+            B = np.array([[0, -ang_vel[2][0], ang_vel[1][0]], [ang_vel[2][0], 0, -ang_vel[0][0]], [-ang_vel[1][0], ang_vel[0][0], 0]]) * dt
+            update_factor = np.eye(3, dtype=float) + sin(sigma)*B/sigma + (1-cos(sigma))*np.matmul(B,B)/(sigma**2)
+
+        #print("\n")
+        #print("***************")
+        #print(update_factor)
+        #print(prev)
+        rot = np.dot(prev,update_factor)
+        #print(rot)
+
+
+        #print(rot[0][0])
+
+        acc = np.matmul(rot, acc)
+        vel = vel + dt*acc
+        pos = pos + dt*vel
+
+        # self.x[9][0] = rot[0][0]
+        # self.x[10][0] = rot[0][1]
+        # self.x[11][0] = rot[0][2]
+        # self.x[12][0] = rot[1][0]
+        # self.x[13][0] = rot[1][1]
+        # self.x[14][0] = rot[1][2]
+        # self.x[15][0] = rot[2][0]
+        # self.x[16][0] = rot[2][1]
+        # self.x[17][0] = rot[2][2]
+
+        # self.x[6][0] = acc[0][0]
+        # self.x[7][0] = acc[1][0]
+        # self.x[8][0] = acc[2][0]
+
+        # self.x[1][0] = vel[0][0]
+        # self.x[3][0] = vel[1][0]
+        # self.x[5][0] = vel[2][0]
+ 
+        # self.x[0][0] = pos[0][0]
+        # self.x[2][0] = pos[1][0]
+        # self.x[4][0] = pos[2][0]
+
+        self.x = np.array([[pos[0][0], vel[0][0], pos[1][0], vel[1][0], pos[2][0], vel[2][0], acc[0][0], acc[1][0], acc[2][0], rot[0][0], rot[0][1], rot[0][2], rot[1][0], rot[1][1], rot[1][2], rot[2][0], rot[2][1], rot[2][2]]]).T
+        #print(self.x[9][0])
 
     def f_jacobian(self, dt):
         """ Compute jacobian F (df/dx)
@@ -313,13 +347,14 @@ class RobotEKF(EKF):
         dt : int
 
         """    
-        F = np.array(
-            [[1, dt, 0, 0, 0, 0],
-             [0, 1, 0, 0, 0, 0],
-             [0, 0, 1, dt, 0, 0],
-             [0, 0, 0, 1, 0, 0],
-             [0, 0, 0, 0, 1, 0],
-             [0, 0, 0, 0, 0, 0]])
+        F = np.eye(self.dim_x)
+        # F = np.array(
+        #     [[1, dt, 0, 0, 0, 0],
+        #      [0, 1, 0, 0, 0, 0],
+        #      [0, 0, 1, dt, 0, 0],
+        #      [0, 0, 0, 1, 0, 0],
+        #      [0, 0, 0, 0, 1, 0],
+        #      [0, 0, 0, 0, 0, 0]])
 
         return F
 
@@ -342,20 +377,21 @@ class RobotEKF(EKF):
         return V
 
     def predict(self, u,dt):
-        theta = self.x[4]
+        #theta = self.x[4]
         self.f(u, dt)
 
         F = self.f_jacobian(dt)
-        V = self.v_jacobian(theta, dt)
+        #V = self.v_jacobian(theta, dt)
 
         # covariance of motion noise in control space
         #TODO ajustar M
         # M = array([[0.5**2, 0, 0], 
         #            [0, 0.5**2, 0],
         #            [0, 0, 0.7**2]])
-        M = array([[0, 0, 0], 
-                   [0, 0, 0],
-                   [0, 0, 0]])
-        VMVT = dot(V,M).dot(V.T)
+        #M = array([[0, 0, 0], 
+                   # [0, 0, 0],
+                   # [0, 0, 0]])
+        #VMVT = dot(V,M).dot(V.T)
         FPFT = dot(F,self.P).dot(F.T)
-        self.P = FPFT + VMVT
+        self.P = FPFT #+ VMVT
+
