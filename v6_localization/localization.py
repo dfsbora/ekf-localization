@@ -91,7 +91,6 @@ def main():
 		
 		
 		# UPDATE
-		
 
 		# No feature detected
 		if unboard.got_landmark is False:
