@@ -134,6 +134,7 @@ class RobotEKF(EKF):
 
         hx = dot(rotation,coordinates)
 
+
         #logging.debug("x in measurement space: %s", hx)
 
 
@@ -153,9 +154,17 @@ class RobotEKF(EKF):
             jacobian of h
             
         """
+        
         theta = self.angle
-        H = np.array([[cos(theta),0,-sin(theta),0,0,0],[sin(theta),0,cos(theta),0,0,0]])
-
+        
+        #H = np.array([[cos(theta),0,-sin(theta),0,0,0],[sin(theta),0,cos(theta),0,0,0]])
+        
+        H = np.zeros((2, 15))
+        H[0][0] = cos(theta)
+        H[0][2] = -sin(theta)
+        H[1][0] = sin(theta)
+        H[1][2] = cos(theta)
+        
         #logging.debug("H jacobian: %s", H)
 
         return H
@@ -225,6 +234,7 @@ class RobotEKF(EKF):
             example, if they are angles)
         """
 
+        
         #No measurement
         if z is None:
             self.z = np.array([[None]*self.dim_z]).T
@@ -244,9 +254,10 @@ class RobotEKF(EKF):
 
         #Define h_jacobian to be used in calculations
         H = self.h_jacobian(lmark_real_pos)
-
+         
         #Calculate Kalman Gain
-        PHT = dot(self.P, H.T)    
+        PHT = dot(self.P, H.T)
+        
 
         self.S = dot(H, PHT) + R
         self.SI = linalg.inv(self.S)

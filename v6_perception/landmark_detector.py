@@ -8,6 +8,7 @@ import argparse
 import math
 import almath
 import logging
+import numpy as np
 
 import unboard
 
@@ -102,7 +103,7 @@ class LandmarkDetector(object):
                 landmark_x = robotToLandmark.r1_c4
                 landmark_y = robotToLandmark.r2_c4
                 
-                mark_pos = [landmark_id, landmark_x, landmark_y]
+                mark_pos = np.array([[landmark_id, landmark_x, landmark_y]]).T
                 mark_pos_array.append(mark_pos)
                 #logging.debug("x: %s", landmark_x)
                 #logging.debug("y: %s", landmark_y)

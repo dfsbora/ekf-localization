@@ -17,46 +17,45 @@ session = qi.Session()
 def main():
 	# Debug and auxiliar variables
 	PLOT = 0
-	PRINT_STEP = 10
-	TIME_SLEEP = 0.5
-	CALIBRATION_TIME = 60
+	PRINT_STEP = 20
+	TIME_SLEEP = 0.1
+	CALIBRATION_TIME = 21
 
 	x_prior_array = []
 	p_prior_array = []
 	x_post_array = []
 	p_post_array = []
 
+
 	# MAP
 	# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
-	#field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[1.5, 1.]]).T}
-	field_map =  { 85: np.array([[0.5, 2.0]]).T ,  64: np.array([[1.5, 1.]]).T}
-
+	field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[1, 1.5]]).T}
+	
 
 	# Create instance of robot filter
 	logging.info("Creating RobotEKF object...")
 	ekf = RobotEKF(dt=0.5, session=session)
 
-	# FILTER INITIALIZATION
-	# Variances
-	std_x = 0.1
-	std_y = 0.5
-
 	# Filter parameters initialization
 	# State
-	ekf.x = np.array([[0,0,0,0,0,0,1,0,0,0,1,0,0,0,1]]).T
+	ekf.x = np.array([[0,1.,0,0,0,0,1,0,0,0,1,0,0,0,1]]).T
 	# Uncertainty covariance
-	ekf.P *= 0.5
+	#ekf.P *= 0.5
 	# Process Uncertainty
-	ekf.Q *= 0.5
+	#ekf.Q *= 
+	# ekf.Q = np.zeros((15, 15))
+	# ekf.Q[1][1] = std_x
+	# ekf.Q[3][3] = std_y
+	# ekf.Q[5][5] = std_z
+
 	# Measurement uncertainty
-	ekf.R = np.diag([std_x**2, std_y**2])
+	ekf.R = np.diag([0.05**2, 0.05**2])
+
 
 	# CALIBRATION
 	# Calculate gyroscope and accelerometer bias
 	ekf.calibration(calibration_time=CALIBRATION_TIME)
-
 	unboard.is_calibrated = True
-
 
 
 	# LOCALIZATION LOOP
@@ -65,70 +64,74 @@ def main():
 	while True:	
 
 		# PREDICT
-		time.sleep(.2)
-		current_time = time.time()
+		
 		acc, gyro = ekf.read_sensors()
 		ekf.compensate_bias(acc,gyro)
+		u = np.concatenate((ekf.acc,ekf.gyro),axis=0)		
 
-		u = np.concatenate((ekf.acc,ekf.gyro),axis=0)
-		
+		current_time = time.time()
 		dt = current_time-prev_time
-		ekf.predict(u=u,dt=dt)
 		prev_time=current_time
+
+		ekf.predict(u=u,dt=dt)
 		ekf.angle_from_rotation_matrix()
 
 		if (i%PRINT_STEP)==0:
 			logging.debug("Prediction")
 			logging.debug("x: %s", ekf.x[0][0])
 			logging.debug("y: %s", ekf.x[2][0])
-			#logging.debug("rot: %s, %s, %s", ekf.x[6][0], ekf.x[10][0], ekf.x[14][0])	
-			logging.debug("angle: %s", ekf.angle)
-
+			logging.debug("P: %s", ekf.P[0][0])
+			logging.debug("angle: %s", np.degrees(ekf.angle))
 
 		if PLOT:
 			x_prior_array.append(ekf.x)
 			p_prior_array.append(ekf.P)
 		
 		
+
 		# UPDATE
 
 		# No feature detected
 		if unboard.got_landmark is False:
 			# Update step copies predicted values
-			#logging.debug("Didnt find landmark")
 			ekf.update(z=None)
 			continue
 
 		detected_landmarks = unboard.landmarks
-		# Update filter for each detected feature
 		try:
+			# Update filter for each detected feature
 			for lmark in detected_landmarks:
-				lmark_id = lmark[0][0]
+				lmark_id = lmark[0][0][0]
 
 				# Create measurement array as [x, y]
-				z = np.array([[ lmark[1], lmark[2] ]]).T
+				z = np.array([[ lmark[1][0], lmark[2][0] ]]).T
 
+				print("z: ", z)
 				# Get landmark gt position
 				lmark_real_pos = field_map.get(lmark_id) 
 
 				ekf.update(z, lmark_real_pos)
 				ekf.angle_from_rotation_matrix()
 
+
 			if (i%PRINT_STEP)==0:
 				logging.debug("Update")
 				logging.debug("x: %s", ekf.x[0][0])
 				logging.debug("y: %s", ekf.x[2][0])
-				logging.debug("rot: %s, %s, %s", ekf.x[6][0], ekf.x[10][0], ekf.x[14][0])
-				logging.debug("angle: %s", ekf.angle)
+				logging.debug("P: %s", ekf.P[0][0])
+				logging.debug("angle: %s", np.degrees(ekf.angle))
 
 			if PLOT:
 				x_post_array.append(ekf.x)
 				p_post_array.append(ekf.P)
+
 		except:
 			pass
 
-		#time.sleep(TIME_SLEEP)
+
 		i = i + 1
+		time.sleep(TIME_SLEEP)
+
 
 	logging.info("Final position: %s", ekf.x)
 	logging.info("Final P: %s", ekf.P[0][0])
@@ -139,3 +142,4 @@ def main():
 		with open("output.csv", "wb") as f:
 			writer = csv.writer(f)
 			writer.writerows(x_prior_array)
+
