@@ -2,8 +2,7 @@
 from robot_EKF import RobotEKF
 from numpy.linalg import norm
 from math import cos, acos
-from math import sin
-from math import acos
+from math import sin, asin
 import time
 import numpy as np
 import qi
@@ -12,6 +11,8 @@ import logging
 
 
 session = qi.Session()
+
+
 
 def main():
 	# Debug and auxiliar variables
@@ -27,7 +28,8 @@ def main():
 
 	# MAP
 	# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
-	field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[1., 1.5]]).T}
+	#field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[1.5, 1.]]).T}
+	field_map =  { 85: np.array([[0.5, 2.0]]).T ,  64: np.array([[1.5, 1.]]).T}
 
 
 	# Create instance of robot filter
@@ -41,7 +43,7 @@ def main():
 
 	# Filter parameters initialization
 	# State
-	ekf.x = np.array([[0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1]]).T
+	ekf.x = np.array([[0,0,0,0,0,0,1,0,0,0,1,0,0,0,1]]).T
 	# Uncertainty covariance
 	ekf.P *= 0.5
 	# Process Uncertainty
@@ -63,7 +65,7 @@ def main():
 	while True:	
 
 		# PREDICT
-		time.sleep(.1)
+		time.sleep(.2)
 		current_time = time.time()
 		acc, gyro = ekf.read_sensors()
 		ekf.compensate_bias(acc,gyro)
@@ -73,13 +75,15 @@ def main():
 		dt = current_time-prev_time
 		ekf.predict(u=u,dt=dt)
 		prev_time=current_time
+		ekf.angle_from_rotation_matrix()
 
 		if (i%PRINT_STEP)==0:
 			logging.debug("Prediction")
 			logging.debug("x: %s", ekf.x[0][0])
 			logging.debug("y: %s", ekf.x[2][0])
-			logging.debug("rot: %s, %s, %s", ekf.x[9][0], ekf.x[13][0], ekf.x[17][0])
-	
+			#logging.debug("rot: %s, %s, %s", ekf.x[6][0], ekf.x[10][0], ekf.x[14][0])	
+			logging.debug("angle: %s", ekf.angle)
+
 
 		if PLOT:
 			x_prior_array.append(ekf.x)
@@ -108,14 +112,14 @@ def main():
 				lmark_real_pos = field_map.get(lmark_id) 
 
 				ekf.update(z, lmark_real_pos)
-
+				ekf.angle_from_rotation_matrix()
 
 			if (i%PRINT_STEP)==0:
 				logging.debug("Update")
 				logging.debug("x: %s", ekf.x[0][0])
 				logging.debug("y: %s", ekf.x[2][0])
-				logging.debug("rot: %s, %s, %s", ekf.x[9][0], ekf.x[13][0], ekf.x[17][0])
-
+				logging.debug("rot: %s, %s, %s", ekf.x[6][0], ekf.x[10][0], ekf.x[14][0])
+				logging.debug("angle: %s", ekf.angle)
 
 			if PLOT:
 				x_post_array.append(ekf.x)

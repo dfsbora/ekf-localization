@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from extended_kalman_filter import ExtendedKalmanFilter as EKF
 from numpy import array, sqrt, dot
-from math import sin, cos, tan, atan
+from math import sin, cos, tan, atan, asin, acos
 import numpy as np
 from numpy.random import rand
 import scipy.linalg as linalg
@@ -13,7 +13,7 @@ from numpy.linalg import norm
 class RobotEKF(EKF):
     def __init__(self, dt,session):
         
-        EKF.__init__(self, 18, 2)
+        EKF.__init__(self, 15, 2)
 
         # INITIALIZE SERVICES
         try:
@@ -27,9 +27,15 @@ class RobotEKF(EKF):
         # Create gyroscope and accelerometer atributes
         self.acc_bias = np.zeros((3, 1))
         self.gyro_bias = np.zeros((3, 1))
+        self.angle = 0
 
         self.acc = np.zeros((3, 1))        
         self.gyro = np.zeros((3, 1))
+
+    def angle_from_rotation_matrix(self):
+        pitch = -asin(self.x[12][0])
+        yaw = acos(self.x[6][0]/cos(pitch))
+        self.angle = yaw
 
 
     def calibration(self,calibration_time=120):
@@ -73,12 +79,6 @@ class RobotEKF(EKF):
 
         logging.debug("Acc bias: %s", acc_bias)
         logging.debug("Gyro bias: %s", gyro_bias)
-
-
-    def get_vel_pos(self):
-        vel = np.array([[ ekf.x[1], ekf.x[3], 0]])
-        pos = np.array([[ ekf.x[0], ekf.x[2], 0]])
-        return vel, pos
 
 
     def read_sensors(self):
@@ -127,7 +127,7 @@ class RobotEKF(EKF):
 
         dx = self.x[0][0] - lmark[0][0]
         dy = self.x[2][0] - lmark[1][0]
-        theta = self.x[4][0]
+        theta = self.angle
         coordinates = np.array([[dx,dy]]).T
         
         rotation = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
@@ -153,7 +153,7 @@ class RobotEKF(EKF):
             jacobian of h
             
         """
-        theta = self.x[4][0]
+        theta = self.angle
         H = np.array([[cos(theta),0,-sin(theta),0,0,0],[sin(theta),0,cos(theta),0,0,0]])
 
         #logging.debug("H jacobian: %s", H)
@@ -281,9 +281,9 @@ class RobotEKF(EKF):
         u : 
             
         """
-        prev = np.array([[self.x[9][0], self.x[10][0], self.x[11][0]],
-            [self.x[12][0], self.x[13][0], self.x[14][0]],
-            [self.x[15][0], self.x[16][0], self.x[17][0]]])
+        prev = np.array([[self.x[6][0], self.x[7][0], self.x[8][0]],
+            [self.x[9][0], self.x[10][0], self.x[11][0]],
+            [self.x[12][0], self.x[13][0], self.x[14][0]]])
 
 
         pos = np.array([[self.x[0][0],self.x[2][0],self.x[4][0]]]).T
@@ -300,43 +300,13 @@ class RobotEKF(EKF):
             B = np.array([[0, -ang_vel[2][0], ang_vel[1][0]], [ang_vel[2][0], 0, -ang_vel[0][0]], [-ang_vel[1][0], ang_vel[0][0], 0]]) * dt
             update_factor = np.eye(3, dtype=float) + sin(sigma)*B/sigma + (1-cos(sigma))*np.matmul(B,B)/(sigma**2)
 
-        #print("\n")
-        #print("***************")
-        #print(update_factor)
-        #print(prev)
         rot = np.dot(prev,update_factor)
-        #print(rot)
 
-
-        #print(rot[0][0])
-
-        acc = np.matmul(rot, acc)
-        vel = vel + dt*acc
+        #acc = np.matmul(rot, acc)
+        vel = vel #+ dt*acc
         pos = pos + dt*vel
 
-        # self.x[9][0] = rot[0][0]
-        # self.x[10][0] = rot[0][1]
-        # self.x[11][0] = rot[0][2]
-        # self.x[12][0] = rot[1][0]
-        # self.x[13][0] = rot[1][1]
-        # self.x[14][0] = rot[1][2]
-        # self.x[15][0] = rot[2][0]
-        # self.x[16][0] = rot[2][1]
-        # self.x[17][0] = rot[2][2]
-
-        # self.x[6][0] = acc[0][0]
-        # self.x[7][0] = acc[1][0]
-        # self.x[8][0] = acc[2][0]
-
-        # self.x[1][0] = vel[0][0]
-        # self.x[3][0] = vel[1][0]
-        # self.x[5][0] = vel[2][0]
- 
-        # self.x[0][0] = pos[0][0]
-        # self.x[2][0] = pos[1][0]
-        # self.x[4][0] = pos[2][0]
-
-        self.x = np.array([[pos[0][0], vel[0][0], pos[1][0], vel[1][0], pos[2][0], vel[2][0], acc[0][0], acc[1][0], acc[2][0], rot[0][0], rot[0][1], rot[0][2], rot[1][0], rot[1][1], rot[1][2], rot[2][0], rot[2][1], rot[2][2]]]).T
+        self.x = np.array([[pos[0][0], vel[0][0], pos[1][0], vel[1][0], pos[2][0], vel[2][0], rot[0][0], rot[0][1], rot[0][2], rot[1][0], rot[1][1], rot[1][2], rot[2][0], rot[2][1], rot[2][2]]]).T
         #print(self.x[9][0])
 
     def f_jacobian(self, dt):
