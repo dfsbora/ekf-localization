@@ -33,9 +33,13 @@ class RobotEKF(EKF):
         self.gyro = np.zeros((3, 1))
 
     def angle_from_rotation_matrix(self):
+#        logging.debug("angle")
         pitch = -asin(self.x[12][0])
+ #       logging.debug("pitch: %s", pitch)
         yaw = acos(self.x[6][0]/cos(pitch))
+  #      logging.debug("yaw: %s", yaw)
         self.angle = yaw
+
 
 
     def calibration(self,calibration_time=120):
@@ -125,10 +129,11 @@ class RobotEKF(EKF):
             state transformed to measurement space
         """
 
-        dx = self.x[0][0] - lmark[0][0]
-        dy = self.x[2][0] - lmark[1][0]
+        dx = np.mod(self.x[0][0] - lmark[0][0])
+        dy = np.mod(self.x[2][0] - lmark[1][0])
         theta = self.angle
         coordinates = np.array([[dx,dy]]).T
+        #logging.debug("coordinates: %s", coordinates)
         
         rotation = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
 
@@ -329,6 +334,9 @@ class RobotEKF(EKF):
 
         """    
         F = np.eye(self.dim_x)
+        F[0][1] = dt
+        F[2][3] = dt
+        F[4][5] = dt
         # F = np.array(
         #     [[1, dt, 0, 0, 0, 0],
         #      [0, 1, 0, 0, 0, 0],
@@ -374,5 +382,5 @@ class RobotEKF(EKF):
                    # [0, 0, 0]])
         #VMVT = dot(V,M).dot(V.T)
         FPFT = dot(F,self.P).dot(F.T)
-        self.P = FPFT #+ VMVT
+        self.P = FPFT +self.Q #+ VMVT
 

@@ -17,8 +17,8 @@ session = qi.Session()
 def main():
 	# Debug and auxiliar variables
 	PLOT = 0
-	PRINT_STEP = 20
-	TIME_SLEEP = 0.1
+	PRINT_STEP = 30
+	TIME_SLEEP = 0.2
 	CALIBRATION_TIME = 21
 
 	x_prior_array = []
@@ -29,7 +29,8 @@ def main():
 
 	# MAP
 	# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
-	field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[1, 1.5]]).T}
+	field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[1.5, 1.]]).T}
+	#field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[0.5, 0]]).T}
 	
 
 	# Create instance of robot filter
@@ -38,9 +39,9 @@ def main():
 
 	# Filter parameters initialization
 	# State
-	ekf.x = np.array([[0,1.,0,0,0,0,1,0,0,0,1,0,0,0,1]]).T
+	ekf.x = np.array([[0,0,1.,0,0,0,1,0,0,0,1,0,0,0,1]]).T
 	# Uncertainty covariance
-	#ekf.P *= 0.5
+	ekf.P *= 0.5
 	# Process Uncertainty
 	#ekf.Q *= 
 	# ekf.Q = np.zeros((15, 15))
@@ -49,7 +50,7 @@ def main():
 	# ekf.Q[5][5] = std_z
 
 	# Measurement uncertainty
-	ekf.R = np.diag([0.05**2, 0.05**2])
+	ekf.R = np.diag([0.1**2, 0.1**2])
 
 
 	# CALIBRATION
@@ -94,6 +95,7 @@ def main():
 		# No feature detected
 		if unboard.got_landmark is False:
 			# Update step copies predicted values
+			#logging.debug("didnt")
 			ekf.update(z=None)
 			continue
 
@@ -102,19 +104,27 @@ def main():
 			# Update filter for each detected feature
 			for lmark in detected_landmarks:
 				lmark_id = lmark[0][0][0]
+				#logging.debug(lmark_id)
 
 				# Create measurement array as [x, y]
 				z = np.array([[ lmark[1][0], lmark[2][0] ]]).T
+				#logging.debug(z)
 
-				print("z: ", z)
+				#print("z: ", z)
 				# Get landmark gt position
 				lmark_real_pos = field_map.get(lmark_id) 
+				#logging.debug(lmark_real_pos)
 
 				ekf.update(z, lmark_real_pos)
+				logging.debug("update")
 				ekf.angle_from_rotation_matrix()
+				#logging.debug("angle")
 
 
+			#logging.debug(i%PRINT_STEP)
 			if (i%PRINT_STEP)==0:
+				logging.debug("z: %s", z)
+				logging.debug("real: %s", lmark_real_pos)
 				logging.debug("Update")
 				logging.debug("x: %s", ekf.x[0][0])
 				logging.debug("y: %s", ekf.x[2][0])
@@ -125,8 +135,10 @@ def main():
 				x_post_array.append(ekf.x)
 				p_post_array.append(ekf.P)
 
+
 		except:
 			pass
+
 
 
 		i = i + 1
