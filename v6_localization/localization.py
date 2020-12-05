@@ -26,6 +26,7 @@ def main():
 	p_prior_array = []
 	x_post_array = []
 	p_post_array = []
+	dt_array = []
 
 	# MAP
 	# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
@@ -63,6 +64,7 @@ def main():
 
 	# LOCALIZATION LOOP
 	prev_time = time.time()
+	plot_prev_time = prev_time
 	#while True:	
 	i=0
 	while unboard.run_localization :
@@ -88,6 +90,10 @@ def main():
 			logging.debug("angle: %s", np.degrees(ekf.angle))
 
 		if PLOT and (i%PLOT_STEP)==0:
+			plot_current_time = current_time
+			plot_dt = plot_current_time - plot_prev_time
+			plot_prev_time = plot_current_time
+			dt_array.append(plot_dt)
 			x_prior_array.append(ekf.x)
 			p_prior_array.append(ekf.P)
 		
@@ -149,11 +155,21 @@ def main():
 	#Writes x and P onde output
 	if PLOT:
 		with open("output.txt","w") as f:
-			for x_prior, p_prior in zip(x_prior_array, p_prior_array):
+			for x_prior, p_prior, x_post, p_post, dt in zip(x_prior_array, p_prior_array, x_post_array, p_post_array, dt_array):
+				f.write(str(dt))
+				f.write(";")
 				for x in x_prior:
 					f.write(str(x[0])+",")
 				f.write(";")
 				for row in p_prior:
+					for p in row:
+						f.write(str(p)+",")
+				f.write(";")
+
+				for x in x_post:
+					f.write(str(x[0])+",")
+				f.write(";")
+				for row in p_post:
 					for p in row:
 						f.write(str(p)+",")
 				f.write("\n")
