@@ -6,7 +6,8 @@ import unboard
 session = qi.Session()
 
 
-zigzag = 1
+zigzag = 0
+square = 0
 
 def main():
 
@@ -25,16 +26,21 @@ def main():
 				motion_service.moveTo(0,0,-1.57)
 				motion_service.moveTo(0.5, 0, 0)
 				motion_service.moveTo(0,0,-1.57)
+				unboard.run_localization = False
 
+			elif square:
+				motion_service.moveTo(0.5, 0, 0)
+				motion_service.moveTo(0,0,-1.57)
+				motion_service.moveTo(1.0, 0, 0)
+				motion_service.moveTo(0,0,-1.57)
+				motion_service.moveTo(0.5, 0, 0)
+				motion_service.moveTo(0,0,-1.57)
+				motion_service.moveTo(1.0, 0, 0)
+				motion_service.moveTo(0,0,-1.57)
+				unboard.run_localization = False
 			else:
-				motion_service.moveTo(0.5, 0, 0)
-				motion_service.moveTo(0,0,-1.57)
-				motion_service.moveTo(1.0, 0, 0)
-				motion_service.moveTo(0,0,-1.57)
-				motion_service.moveTo(0.5, 0, 0)
-				motion_service.moveTo(0,0,-1.57)
-				motion_service.moveTo(1.0, 0, 0)
-				motion_service.moveTo(0,0,-1.57)
+				time.sleep(20)
+				unboard.run_localization = False
 			#motion_service.moveToward(0.3, 0, 0)
 			#motion_service.moveTo(0, 0.5, 0)
 			time.sleep(1)

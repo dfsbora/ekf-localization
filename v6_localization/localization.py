@@ -16,16 +16,16 @@ session = qi.Session()
 
 def main():
 	# Debug and auxiliar variables
-	PLOT = 0
-	PRINT_STEP = 30
+	PLOT = 1
+	PLOT_STEP = 10
+	PRINT_STEP = 20
 	TIME_SLEEP = 0.2
-	CALIBRATION_TIME = 21
+	CALIBRATION_TIME = 5
 
 	x_prior_array = []
 	p_prior_array = []
 	x_post_array = []
 	p_post_array = []
-
 
 	# MAP
 	# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
@@ -59,10 +59,13 @@ def main():
 	unboard.is_calibrated = True
 
 
+
+
 	# LOCALIZATION LOOP
-	i=0
 	prev_time = time.time()
-	while True:	
+	#while True:	
+	i=0
+	while unboard.run_localization :
 
 		# PREDICT
 		
@@ -84,7 +87,7 @@ def main():
 			logging.debug("P: %s", ekf.P[0][0])
 			logging.debug("angle: %s", np.degrees(ekf.angle))
 
-		if PLOT:
+		if PLOT and (i%PLOT_STEP)==0:
 			x_prior_array.append(ekf.x)
 			p_prior_array.append(ekf.P)
 		
@@ -97,61 +100,69 @@ def main():
 			# Update step copies predicted values
 			#logging.debug("didnt")
 			ekf.update(z=None)
-			continue
+			
+		else:
+			detected_landmarks = unboard.landmarks
+			try:
+				# Update filter for each detected feature
+				for lmark in detected_landmarks:
+					lmark_id = lmark[0][0][0]
+					#logging.debug(lmark_id)
 
-		detected_landmarks = unboard.landmarks
-		try:
-			# Update filter for each detected feature
-			for lmark in detected_landmarks:
-				lmark_id = lmark[0][0][0]
-				#logging.debug(lmark_id)
+					# Create measurement array as [x, y]
+					z = np.array([[ lmark[1][0], lmark[2][0] ]]).T
+					#logging.debug(z)
 
-				# Create measurement array as [x, y]
-				z = np.array([[ lmark[1][0], lmark[2][0] ]]).T
-				#logging.debug(z)
+					#print("z: ", z)
+					# Get landmark gt position
+					lmark_real_pos = field_map.get(lmark_id) 
+					#logging.debug(lmark_real_pos)
 
-				#print("z: ", z)
-				# Get landmark gt position
-				lmark_real_pos = field_map.get(lmark_id) 
-				#logging.debug(lmark_real_pos)
+					ekf.update(z, lmark_real_pos)
+					logging.debug("update")
+					ekf.angle_from_rotation_matrix()
+					#logging.debug("angle")
+					#logging.debug("z: %s", z)
+					#logging.debug("real: %s", lmark_real_pos)
 
-				ekf.update(z, lmark_real_pos)
-				logging.debug("update")
-				ekf.angle_from_rotation_matrix()
-				#logging.debug("angle")
+			except Exception:
+				pass
 
+					#logging.debug(i%PRINT_STEP)
+		if (i%PRINT_STEP)==0:
+			logging.debug("Update")
+			logging.debug("x: %s", ekf.x[0][0])
+			logging.debug("y: %s", ekf.x[2][0])
+			logging.debug("P: %s", ekf.P[0][0])
+			logging.debug("angle: %s", np.degrees(ekf.angle))
 
-			#logging.debug(i%PRINT_STEP)
-			if (i%PRINT_STEP)==0:
-				logging.debug("z: %s", z)
-				logging.debug("real: %s", lmark_real_pos)
-				logging.debug("Update")
-				logging.debug("x: %s", ekf.x[0][0])
-				logging.debug("y: %s", ekf.x[2][0])
-				logging.debug("P: %s", ekf.P[0][0])
-				logging.debug("angle: %s", np.degrees(ekf.angle))
-
-			if PLOT:
-				x_post_array.append(ekf.x)
-				p_post_array.append(ekf.P)
-
-
-		except:
-			pass
+		if PLOT and (i%PLOT_STEP)==0:
+			x_post_array.append(ekf.x)
+			p_post_array.append(ekf.P)
 
 
 
 		i = i + 1
 		time.sleep(TIME_SLEEP)
+		
+
+	#Writes x and P onde output
+	if PLOT:
+		with open("output.txt","w") as f:
+			for x_prior, p_prior, i in zip(x_prior_array, p_prior_array, i_array):
+				for x in x_prior:
+					f.write(str(x[0])+",")
+				f.write(";")
+				for row in p_prior:
+					for p in row:
+						f.write(str(p)+",")
+				f.write("\n")
+
+
 
 
 	logging.info("Final position: %s", ekf.x)
 	logging.info("Final P: %s", ekf.P[0][0])
 
 
-	if PLOT:
-		import csv
-		with open("output.csv", "wb") as f:
-			writer = csv.writer(f)
-			writer.writerows(x_prior_array)
 
