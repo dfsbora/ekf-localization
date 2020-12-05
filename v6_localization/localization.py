@@ -149,7 +149,7 @@ def main():
 	#Writes x and P onde output
 	if PLOT:
 		with open("output.txt","w") as f:
-			for x_prior, p_prior, i in zip(x_prior_array, p_prior_array, i_array):
+			for x_prior, p_prior in zip(x_prior_array, p_prior_array):
 				for x in x_prior:
 					f.write(str(x[0])+",")
 				f.write(";")
