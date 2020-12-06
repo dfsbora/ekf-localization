@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from extended_kalman_filter import ExtendedKalmanFilter as EKF
 from numpy import array, sqrt, dot
-from math import sin, cos, tan, atan, asin, acos
+from math import sin, cos, tan, atan, asin, acos, atan2
 import numpy as np
 from numpy.random import rand
 import scipy.linalg as linalg
@@ -33,12 +33,14 @@ class RobotEKF(EKF):
         self.gyro = np.zeros((3, 1))
 
     def angle_from_rotation_matrix(self):
-#        logging.debug("angle")
-        pitch = -asin(self.x[12][0])
- #       logging.debug("pitch: %s", pitch)
-        yaw = acos(self.x[6][0]/cos(pitch))
-  #      logging.debug("yaw: %s", yaw)
-        self.angle = yaw
+        pitch1 = -asin(self.x[12][0])
+        pitch2 = np.pi - asin(self.x[12][0])
+        yaw1 = atan2(self.x[9][0]/cos(pitch1), self.x[6][0]/cos(pitch1))
+        yaw2 = atan2(self.x[9][0]/cos(pitch2), self.x[6][0]/cos(pitch2))
+        #logging.debug("yaw1: %s", np.degrees(yaw1))
+        #logging.debug("yaw2: %s", np.degrees(yaw2))
+        self.angle = yaw1
+        #logging.debug("yaw: %s", np.degrees(self.angle))
 
 
 
@@ -128,16 +130,38 @@ class RobotEKF(EKF):
         hx : 
             state transformed to measurement space
         """
+        #logging.debug("start h")
+        #logging.debug("self.x00: %s", self.x[0][0])
+        #logging.debug("lmark00: %s", lmark[0][0])
+        dx = lmark[0][0] - self.x[0][0]
+        dy = lmark[1][0] - self.x[2][0]
+        #logging.debug("dx: %s", dx)
+        #if dx < 0:
+        #    dx = -dx
+        #if dy < 0:
+        #    dy = -dy
+        
 
-        dx = np.mod(self.x[0][0] - lmark[0][0])
-        dy = np.mod(self.x[2][0] - lmark[1][0])
-        theta = self.angle
+        #logging.debug("getting theta")
+        #theta = self.angle
+        #coordinates = np.array([[dx,dy]]).T
+        #logging.debug("coordinates: %s", coordinates)
+        #rotation = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
+
+
+
         coordinates = np.array([[dx,dy]]).T
+        #theta = self.angle
+
+        rotation = np.array([[self.x[6][0],self.x[7][0]],[self.x[9][0],self.x[10][0]]])
+
+        
         #logging.debug("coordinates: %s", coordinates)
         
-        rotation = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
-
+        #rotation = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
+        #logging.debug("before hx")
         hx = dot(rotation,coordinates)
+        #logging.debug("hx %s", hx)
 
 
         #logging.debug("x in measurement space: %s", hx)
@@ -160,16 +184,28 @@ class RobotEKF(EKF):
             
         """
         
-        theta = self.angle
+        #theta = self.angle
         
         #H = np.array([[cos(theta),0,-sin(theta),0,0,0],[sin(theta),0,cos(theta),0,0,0]])
+
+
+        #  theta = self.angle
         
+        # #H = np.array([[cos(theta),0,-sin(theta),0,0,0],[sin(theta),0,cos(theta),0,0,0]])
+        
+        # H = np.zeros((2, 15))
+        # H[0][0] = cos(theta)
+        # H[0][2] = -sin(theta)
+        # H[1][0] = sin(theta)
+        # H[1][2] = cos(theta)
+
         H = np.zeros((2, 15))
-        H[0][0] = cos(theta)
-        H[0][2] = -sin(theta)
-        H[1][0] = sin(theta)
-        H[1][2] = cos(theta)
+        H[0][0] = self.x[6][0]
+        H[0][2] = self.x[7][0]
+        H[1][0] = self.x[9][0]
+        H[1][2] = self.x[10][0]
         
+        H =  -H
         #logging.debug("H jacobian: %s", H)
 
         return H
@@ -272,8 +308,10 @@ class RobotEKF(EKF):
 
         #Calculate residual using defined residual function
         hx = self.h(lmark_real_pos)
+        #logging.debug("hx: %s", hx)
         self.y = self.residual(z, hx)
         self.x = self.x + dot(self.K, self.y)
+        #logging.debug("self.x %s", self.x)
 
         # P = (I-KH)P(I-KH)' + KRK' is more numerically stable
         # and works for non-optimal K vs the equation

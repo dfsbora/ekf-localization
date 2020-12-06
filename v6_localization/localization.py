@@ -30,8 +30,9 @@ def main():
 
 	# MAP
 	# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
-	field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[1.5, 1.]]).T}
+	#field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[1.5, 1.]]).T}
 	#field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[0.5, 0]]).T}
+	field_map =  { 85: np.array([[2., 0.]]).T ,  64: np.array([[0.5, 0]]).T}
 	
 
 	# Create instance of robot filter
@@ -40,7 +41,7 @@ def main():
 
 	# Filter parameters initialization
 	# State
-	ekf.x = np.array([[0,0,1.,0,0,0,1,0,0,0,1,0,0,0,1]]).T
+	ekf.x = np.array([[0,0,0,0,0,0,1,0,0,0,1,0,0,0,1]]).T
 	# Uncertainty covariance
 	ekf.P *= 0.5
 	# Process Uncertainty
@@ -119,13 +120,14 @@ def main():
 					z = np.array([[ lmark[1][0], lmark[2][0] ]]).T
 					#logging.debug(z)
 
-					#print("z: ", z)
+					#logging.debug("z: %s", z)
 					# Get landmark gt position
 					lmark_real_pos = field_map.get(lmark_id) 
-					#logging.debug(lmark_real_pos)
+					#logging.debug("real: %s", lmark_real_pos)
 
+					#logging.debug("before update")
 					ekf.update(z, lmark_real_pos)
-					logging.debug("update")
+					#logging.debug("update")
 					ekf.angle_from_rotation_matrix()
 					#logging.debug("angle")
 					#logging.debug("z: %s", z)
@@ -176,9 +178,6 @@ def main():
 
 
 
-
 	logging.info("Final position: %s", ekf.x)
 	logging.info("Final P: %s", ekf.P[0][0])
-
-
 

@@ -39,7 +39,7 @@ def main():
 				motion_service.moveTo(0,0,-1.57)
 				unboard.run_localization = False
 			else:
-				time.sleep(20)
+				time.sleep(65)
 				unboard.run_localization = False
 			#motion_service.moveToward(0.3, 0, 0)
 			#motion_service.moveTo(0, 0.5, 0)
