@@ -14,7 +14,7 @@ def main():
 	motion_service = session.service("ALMotion")
 	motion_service.setStiffnesses("Body", 1.0)
 
-	while True:
+	while unboard.run_localization:
 		if unboard.is_calibrated:
 			#motion_service.moveInit()
 			if zigzag:
@@ -26,6 +26,16 @@ def main():
 				motion_service.moveTo(0,0,-1.57)
 				motion_service.moveTo(0.5, 0, 0)
 				motion_service.moveTo(0,0,-1.57)
+
+				motion_service.moveTo(0.5, 0, 0)
+				motion_service.moveTo(0,0,1.57)
+				motion_service.moveTo(0.5, 0, 0)
+				motion_service.moveTo(0,0,1.57)
+				motion_service.moveTo(0.5, 0, 0)
+				motion_service.moveTo(0,0,-1.57)
+				motion_service.moveTo(0.5, 0, 0)
+				motion_service.moveTo(0,0,-1.57)
+				
 				unboard.run_localization = False
 
 			elif square:

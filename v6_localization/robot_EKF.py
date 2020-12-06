@@ -133,8 +133,10 @@ class RobotEKF(EKF):
         #logging.debug("start h")
         #logging.debug("self.x00: %s", self.x[0][0])
         #logging.debug("lmark00: %s", lmark[0][0])
+        #dx = lmark[0][0] - self.x[0][0]
+        #dy = lmark[1][0] - self.x[2][0]
         dx = lmark[0][0] - self.x[0][0]
-        dy = lmark[1][0] - self.x[2][0]
+        dy = lmark[1][0] - self.x[2][0]        
         #logging.debug("dx: %s", dx)
         #if dx < 0:
         #    dx = -dx

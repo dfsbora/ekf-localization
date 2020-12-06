@@ -18,9 +18,9 @@ def main():
 	# Debug and auxiliar variables
 	PLOT = 1
 	PLOT_STEP = 10
-	PRINT_STEP = 20
+	PRINT_STEP = 2
 	TIME_SLEEP = 0.2
-	CALIBRATION_TIME = 5
+	CALIBRATION_TIME = 30
 
 	x_prior_array = []
 	p_prior_array = []
@@ -31,7 +31,6 @@ def main():
 	# MAP
 	# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
 	#field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[1.5, 1.]]).T}
-	#field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[0.5, 0]]).T}
 	field_map =  { 85: np.array([[2., 0.]]).T ,  64: np.array([[0.5, 0]]).T}
 	
 
@@ -41,11 +40,12 @@ def main():
 
 	# Filter parameters initialization
 	# State
-	ekf.x = np.array([[0,0,0,0,0,0,1,0,0,0,1,0,0,0,1]]).T
+	ekf.x = np.array([[0,0,0.0,0,0,0,1,0,0,0,1,0,0,0,1]]).T
 	# Uncertainty covariance
-	ekf.P *= 0.5
+	ekf.P *= np.diag([1,0.2,1,0.2,1,0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
 	# Process Uncertainty
 	#ekf.Q *= 
+	ekf.Q *= np.diag([0.,0.25,0.,0.25,0.,0.25, 0., 0., 0., 0., 0., 0., 0., 0., 0.])
 	# ekf.Q = np.zeros((15, 15))
 	# ekf.Q[1][1] = std_x
 	# ekf.Q[3][3] = std_y
@@ -59,8 +59,6 @@ def main():
 	# Calculate gyroscope and accelerometer bias
 	ekf.calibration(calibration_time=CALIBRATION_TIME)
 	unboard.is_calibrated = True
-
-
 
 
 	# LOCALIZATION LOOP
@@ -139,6 +137,7 @@ def main():
 					#logging.debug(i%PRINT_STEP)
 		if (i%PRINT_STEP)==0:
 			logging.debug("Update")
+			logging.debug("Saw landmark: %s", unboard.got_landmark)
 			logging.debug("x: %s", ekf.x[0][0])
 			logging.debug("y: %s", ekf.x[2][0])
 			logging.debug("P: %s", ekf.P[0][0])
