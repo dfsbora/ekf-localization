@@ -97,6 +97,11 @@ class LandmarkDetector(object):
                 # Compute the translation to reach the landmark.
                 cameraToLandmarkTranslationTransform = almath.Transform(distanceFromCameraToLandmark, 0, 0)
 
+                #logging.debug("wy: %s", wyCamera)
+                #logging.debug("rot: %s", cameraToLandmarkRotationTransform)
+
+                #logging.debug("trans: %s", cameraToLandmarkTranslationTransform)
+
                 # Combine all transformations to get the landmark position in NAO space.
                 robotToLandmark = robotToCamera * cameraToLandmarkRotationTransform *cameraToLandmarkTranslationTransform
 

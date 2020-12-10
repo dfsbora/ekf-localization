@@ -13,14 +13,14 @@ import logging
 session = qi.Session()
 
 
-
 def main():
 	# Debug and auxiliar variables
 	PLOT = 1
 	PLOT_STEP = 10
-	PRINT_STEP = 2
-	TIME_SLEEP = 0.2
-	CALIBRATION_TIME = 30
+	PRINT_STEP = 350
+	TIME_SLEEP = 0
+	CALIBRATION_TIME = 120
+	FILENAME = "t6_L.txt"
 
 	x_prior_array = []
 	p_prior_array = []
@@ -30,8 +30,9 @@ def main():
 
 	# MAP
 	# Create a field map Dictionary as "NAOmark ID: (x,y)" in global positions
+	field_map =  { 85: np.array([[2.5, 0]]).T ,  64: np.array([[1.5, 1.]]).T}
+	field_map =  { 64: np.array([[3.0, 0.]]).T, 85: np.array([[3.0, 2.25]]).T , 108: np.array([[2.05, 2.25]]).T}
 	#field_map =  { 85: np.array([[0, 4.0]]).T ,  64: np.array([[1.5, 1.]]).T}
-	field_map =  { 85: np.array([[2., 0.]]).T ,  64: np.array([[0.5, 0]]).T}
 	
 
 	# Create instance of robot filter
@@ -42,17 +43,20 @@ def main():
 	# State
 	ekf.x = np.array([[0,0,0.0,0,0,0,1,0,0,0,1,0,0,0,1]]).T
 	# Uncertainty covariance
-	ekf.P *= np.diag([1,0.2,1,0.2,1,0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
+	ekf.P *= np.diag([0.2,0.,0.2,0.,0,0., 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2])
 	# Process Uncertainty
 	#ekf.Q *= 
-	ekf.Q *= np.diag([0.,0.25,0.,0.25,0.,0.25, 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+	ekf.Q *= np.diag([0.25**2,0.25,0.25**2,0.25,0.25**2,0.25, 0.0001, 0., 0., 0., 0.0001, 0., 0., 0., 0.0001])
+	#ekf.Q *= np.diag([0.25**2,0.25,0.25**2,0.25,0.25**2,0.25, -0.0001, 0., 0., 0., -0.0001, 0., 0., 0., -0.0001])
+
+	#0.0265 & 0.01567 & 0.0253
 	# ekf.Q = np.zeros((15, 15))
 	# ekf.Q[1][1] = std_x
 	# ekf.Q[3][3] = std_y
 	# ekf.Q[5][5] = std_z
 
 	# Measurement uncertainty
-	ekf.R = np.diag([0.1**2, 0.1**2])
+	ekf.R = np.diag([0.0825**2, 0.0825**2])
 
 
 	# CALIBRATION
@@ -86,6 +90,7 @@ def main():
 			logging.debug("x: %s", ekf.x[0][0])
 			logging.debug("y: %s", ekf.x[2][0])
 			logging.debug("P: %s", ekf.P[0][0])
+			logging.debug("P: %s", ekf.P[2][2])
 			logging.debug("angle: %s", np.degrees(ekf.angle))
 
 		if PLOT and (i%PLOT_STEP)==0:
@@ -141,6 +146,7 @@ def main():
 			logging.debug("x: %s", ekf.x[0][0])
 			logging.debug("y: %s", ekf.x[2][0])
 			logging.debug("P: %s", ekf.P[0][0])
+			logging.debug("P: %s", ekf.P[2][2])
 			logging.debug("angle: %s", np.degrees(ekf.angle))
 
 		if PLOT and (i%PLOT_STEP)==0:
@@ -155,7 +161,7 @@ def main():
 
 	#Writes x and P onde output
 	if PLOT:
-		with open("output.txt","w") as f:
+		with open(FILENAME,"w") as f:
 			for x_prior, p_prior, x_post, p_post, dt in zip(x_prior_array, p_prior_array, x_post_array, p_post_array, dt_array):
 				f.write(str(dt))
 				f.write(";")
@@ -178,5 +184,6 @@ def main():
 
 
 	logging.info("Final position: %s", ekf.x)
-	logging.info("Final P: %s", ekf.P[0][0])
+	logging.info("\n")
+	logging.info("Final P: %s", ekf.P)
 

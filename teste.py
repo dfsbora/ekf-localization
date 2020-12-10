@@ -51,7 +51,7 @@ class LandmarkDetector(object):
         """
         if markData == []:  # empty value when the landmark disappears
             self.got_landmark = False
-        else:#if not self.got_landmark:  # only speak the first time a landmark appears
+        elif not self.got_landmark:  # only speak the first time a landmark appears
             self.got_landmark = True
             print "I saw a landmark! "
             #self.tts.say("I saw a landmark! ")

@@ -32,6 +32,9 @@ class RobotEKF(EKF):
         self.acc = np.zeros((3, 1))        
         self.gyro = np.zeros((3, 1))
 
+        #self.acc_threshold = 0.1
+        self.g = np.array([[0.,0.,9.81]]).T
+
     def angle_from_rotation_matrix(self):
         pitch1 = -asin(self.x[12][0])
         pitch2 = np.pi - asin(self.x[12][0])
@@ -41,8 +44,6 @@ class RobotEKF(EKF):
         #logging.debug("yaw2: %s", np.degrees(yaw2))
         self.angle = yaw1
         #logging.debug("yaw: %s", np.degrees(self.angle))
-
-
 
     def calibration(self,calibration_time=120):
         """ Perform IMU sensors calibration
@@ -77,15 +78,14 @@ class RobotEKF(EKF):
                 logging.info("Calibration in progress...")
                 counter_prev=time.time()
 
-        acc_bias = acc_sum/i
+        acc_bias = acc_sum/i + np.array([[0.,0.,9.81]]).T
         gyro_bias = gyro_sum/i
 
-        self.acc_bias = acc_bias #TODO retirar gravidade daqui
+        self.acc_bias = acc_bias  #TODO retirar gravidade daqui
         self.gyro_bias = gyro_bias
 
         logging.debug("Acc bias: %s", acc_bias)
         logging.debug("Gyro bias: %s", gyro_bias)
-
 
     def read_sensors(self):
         """ Read IMU sensors data
@@ -103,7 +103,6 @@ class RobotEKF(EKF):
 
         return acc, gyro
         
-
     def compensate_bias(self, acc, gyro):
         """ Compensate bias on IMU reading
 
@@ -115,9 +114,20 @@ class RobotEKF(EKF):
         gyro : np.array
             gyroscope reading
         """
-        self.acc = acc - self.acc_bias  #TODO precisa compensar a rotação aqui?
-        self.gyro = gyro - self.gyro_bias
+        aux = acc + self.g
+        #logging.debug(np.absolute(aux[0]))
+        #if np.absolute(aux[0]) > self.acc_threshold:
+        #    self.update_bias(acc)
 
+
+
+        prev = np.array([[self.x[6][0], self.x[7][0], self.x[8][0]],
+            [self.x[9][0], self.x[10][0], self.x[11][0]],
+            [self.x[12][0], self.x[13][0], self.x[14][0]]])
+        acc_bias = np.dot(prev, self.acc_bias)
+
+        self.acc = acc - acc_bias   #TODO precisa compensar a rotação aqui?
+        self.gyro = gyro - self.gyro_bias
 
     def h(self, lmark):
         """ Transform state to measurement space
@@ -171,7 +181,6 @@ class RobotEKF(EKF):
 
         return hx
 
-
     def h_jacobian(self, lmark):
         """ Compute jacobian (linearized) measurement matrix H
 
@@ -212,7 +221,6 @@ class RobotEKF(EKF):
 
         return H
 
-
     def residual(self, a, b):
         """ Calculate residual and force the angle to be in range [0, 2 pi)
 
@@ -233,7 +241,6 @@ class RobotEKF(EKF):
 
         #logging.debug("Residual: %s", y)
         return y
-
 
     def update(self, z, lmark_real_pos=None, R=None):
         """ Performs the update innovation of the extended Kalman filter.
@@ -327,7 +334,8 @@ class RobotEKF(EKF):
         self.x_post = self.x.copy()
         self.P_post = self.P.copy()
 
-
+    #def update_bias(self, acc):
+    #    self.acc_bias = self.acc_bias + 0.01 * (acc - self.acc_bias)
 
     def f(self, u, dt):
         """ Calculates x from previous x and current u
@@ -337,6 +345,8 @@ class RobotEKF(EKF):
         u : 
             
         """
+        g = np.array([[0.,0.,9.81]]).T
+
         prev = np.array([[self.x[6][0], self.x[7][0], self.x[8][0]],
             [self.x[9][0], self.x[10][0], self.x[11][0]],
             [self.x[12][0], self.x[13][0], self.x[14][0]]])
@@ -345,8 +355,11 @@ class RobotEKF(EKF):
         pos = np.array([[self.x[0][0],self.x[2][0],self.x[4][0]]]).T
         vel = np.array([[self.x[1][0],self.x[3][0],self.x[5][0]]]).T
 
+
         acc = np.array([[u[0][0],u[1][0],u[2][0]]]).T
+        
         ang_vel = np.array([[u[3][0],u[4][0],u[5][0]]]).T
+
         sigma = norm(dt)*norm(ang_vel)
         
 
@@ -358,9 +371,20 @@ class RobotEKF(EKF):
 
         rot = np.dot(prev,update_factor)
 
+
+        #if np.absolute(acc) + g > self.acc_threshold:
+        #    update_bias(acc)
+
+
+        acc = np.dot(prev,acc)
+        #logging.debug(acc)
+        acc = acc + g
+        #logging.debug(acc)
         #acc = np.matmul(rot, acc)
-        vel = vel #+ dt*acc
         pos = pos + dt*vel
+        vel = vel + dt*acc
+        
+
 
         self.x = np.array([[pos[0][0], vel[0][0], pos[1][0], vel[1][0], pos[2][0], vel[2][0], rot[0][0], rot[0][1], rot[0][2], rot[1][0], rot[1][1], rot[1][2], rot[2][0], rot[2][1], rot[2][2]]]).T
         #print(self.x[9][0])
@@ -382,12 +406,12 @@ class RobotEKF(EKF):
         #      [0, 1, 0, 0, 0, 0],
         #      [0, 0, 1, dt, 0, 0],
         #      [0, 0, 0, 1, 0, 0],
-        #      [0, 0, 0, 0, 1, 0],
-        #      [0, 0, 0, 0, 0, 0]])
+        #      [0, 0, 0, 0, 1, dt],
+        #      [0, 0, 0, 0, 0, 1]])
 
         return F
 
-    def v_jacobian(self, theta, dt):
+    def v_jacobian(self, dt, prev):
         """ Compute jacobian V (df/du)
 
         Parameters
@@ -395,13 +419,21 @@ class RobotEKF(EKF):
         dt : int
 
         """    
-        V = np.array(
-            [[cos(theta)*0.5*dt**2, -sin(theta)*0.5*dt**2, 0],
-             [cos(theta)*dt, -sin(theta)*dt, 0],
-             [sin(theta)*0.5*dt**2, cos(theta)*0.5*dt**2, 0],
-             [sin(theta)*dt, cos(theta)*dt, 0],
-             [0, 0, 0],
-             [0, 0, 1]])
+
+        V = np.zeros((15,6))
+
+        V[1,0:3] = prev[0]*dt
+        V[3,0:3] = prev[1]*dt
+        V[5,0:3] = prev[2]*dt
+        #V[6:15, 3:6] = prev
+
+        # V = np.array(
+        #     [[cos(theta)*0.5*dt**2, -sin(theta)*0.5*dt**2, 0],
+        #      [cos(theta)*dt, -sin(theta)*dt, 0],
+        #      [sin(theta)*0.5*dt**2, cos(theta)*0.5*dt**2, 0],
+        #      [sin(theta)*dt, cos(theta)*dt, 0],
+        #      [0, 0, 0],
+        #      [0, 0, 1]])
 
         return V
 
@@ -409,18 +441,17 @@ class RobotEKF(EKF):
         #theta = self.x[4]
         self.f(u, dt)
 
+        prev = np.array([[self.x[6][0], self.x[7][0], self.x[8][0]],
+            [self.x[9][0], self.x[10][0], self.x[11][0]],
+            [self.x[12][0], self.x[13][0], self.x[14][0]]])
+
         F = self.f_jacobian(dt)
-        #V = self.v_jacobian(theta, dt)
+        #V = self.v_jacobian(dt, prev)
 
         # covariance of motion noise in control space
-        #TODO ajustar M
-        # M = array([[0.5**2, 0, 0], 
-        #            [0, 0.5**2, 0],
-        #            [0, 0, 0.7**2]])
-        #M = array([[0, 0, 0], 
-                   # [0, 0, 0],
-                   # [0, 0, 0]])
+        #M = np.diag([0.0265**2, 0.01567**2, 0.0253**2, 0.0015**2, 0.0031**2, 0.0019**2])
+
         #VMVT = dot(V,M).dot(V.T)
         FPFT = dot(F,self.P).dot(F.T)
-        self.P = FPFT +self.Q #+ VMVT
+        self.P = FPFT  +self.Q #+ VMVT #
 
