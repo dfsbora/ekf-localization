@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+
 """Copyright 2015 Roger R Labbe Jr.
 FilterPy library.
+http://github.com/rlabbe/filterpy
+
 This is licensed under an MIT license.
 """
 
