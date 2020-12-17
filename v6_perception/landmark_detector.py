@@ -1,5 +1,10 @@
 #! /usr/bin/env python
-# -*- encoding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+
+"""2020 Débora Ferreira dos Santos
+
+Adapted from Softbank Robotics
+"""
 
 import qi
 import time
@@ -34,24 +39,23 @@ class LandmarkDetector(object):
         """
         super(LandmarkDetector, self).__init__()
 
-        # Set here the size of the landmark in meters.
-        self.landmarkTheoreticalSize = 0.145 #printed naomarks size
-        # Set here the current camera ("CameraTop" or "CameraBottom").
+        # Set the actual size of the printed landmark diameter in meters
+        self.landmarkTheoreticalSize = 0.145 
+
+        # Set the current camera ("CameraTop" or "CameraBottom")
         self.currentCamera = "CameraTop"
 
         # Get the service ALMemory.
         self.mem_service = session.service("ALMemory")
 
         # Get the services ALLandMarkDetection and ALMotion.
-        #self.tts = session.service("ALTextToSpeech")
         self.landmark_detection = session.service("ALLandMarkDetection")
         self.motion_service = session.service("ALMotion")
         self.landmark_detection.subscribe("LandmarkDetector", 500, 0.0 )
 
-                # Connect the event callback.
+        # Connect the event callback.
         self.mem_subscriber = self.mem_service.subscriber("LandmarkDetected")
         self.mem_subscriber.signal.connect(self.on_landmark_detected)
-
 
 
     def on_landmark_detected(self, markData):
@@ -83,13 +87,8 @@ class LandmarkDetector(object):
                 # Retrieve landmark angular size in radians.
                 angularSize = mark_info[0][3]
 
-                # Compute distance to landmark.
+                # Compute distance to landmark (triangle similarity)
                 distanceFromCameraToLandmark = self.landmarkTheoreticalSize / ( 2 * math.tan( angularSize / 2))
-
-                # Get current camera position in NAO space.
-                transform = self.motion_service.getTransform(self.currentCamera, 2, True)
-                transformList = almath.vectorFloat(transform)
-                robotToCamera = almath.Transform(transformList)
 
                 # Compute the rotation to point towards the landmark.
                 cameraToLandmarkRotationTransform = almath.Transform_from3DRotation(0, wyCamera, wzCamera)
@@ -97,10 +96,10 @@ class LandmarkDetector(object):
                 # Compute the translation to reach the landmark.
                 cameraToLandmarkTranslationTransform = almath.Transform(distanceFromCameraToLandmark, 0, 0)
 
-                #logging.debug("wy: %s", wyCamera)
-                #logging.debug("rot: %s", cameraToLandmarkRotationTransform)
-
-                #logging.debug("trans: %s", cameraToLandmarkTranslationTransform)
+                # Get current camera position in NAO space.
+                transform = self.motion_service.getTransform(self.currentCamera, 2, True)
+                transformList = almath.vectorFloat(transform)
+                robotToCamera = almath.Transform(transformList)
 
                 # Combine all transformations to get the landmark position in NAO space.
                 robotToLandmark = robotToCamera * cameraToLandmarkRotationTransform *cameraToLandmarkTranslationTransform
@@ -110,16 +109,15 @@ class LandmarkDetector(object):
                 
                 mark_pos = np.array([[landmark_id, landmark_x, landmark_y]]).T
                 mark_pos_array.append(mark_pos)
-                #logging.debug("x: %s", landmark_x)
-                #logging.debug("y: %s", landmark_y)
 
-            #Write on unboard
+            #Write on unboard detected landmarks info
             unboard.landmarks = mark_pos_array
 
 
     def run(self):
         """
         Loop on, wait for events until manual interruption.
+        Manual interruption only works when running this module alone
         """
         try:
             while True:
@@ -127,14 +125,12 @@ class LandmarkDetector(object):
         except KeyboardInterrupt:
             print "Interrupted by user, stopping LandmarkDetector"
             self.landmark_detection.unsubscribe("LandmarkDetector")
-            #stop
             sys.exit(0)
 
 
 session = qi.Session()
 
 def main():
-
     landmark_detector = LandmarkDetector(session)
     landmark_detector.run()
 
