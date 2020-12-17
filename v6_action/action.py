@@ -1,12 +1,19 @@
+# -*- coding: utf-8 -*-
+
+"""Copyright 2020 Débora Ferreira dos Santos
+
+This is licensed under an MIT license.
+"""
+
+# This code uses moveTo(x,y,theta) commands
+# For velocity command use moveToward(vx,vy,omega)
+
 import time
 import qi
 from naoqi import ALProxy
 import unboard
 
 session = qi.Session()
-
-# This code uses moveTo(x,y,theta) commands
-# For velocity command use moveToward(vx,vy,omega)
 
 
 # Choose standard movements for filter tests
