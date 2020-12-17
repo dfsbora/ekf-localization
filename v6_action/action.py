@@ -5,12 +5,11 @@ import unboard
 
 session = qi.Session()
 
+# This code uses moveTo(x,y,theta) commands
+# For velocity command use moveToward(vx,vy,omega)
 
-# moveTo(x,y,theta) 
-# for velocity command use moveToward()
-# moveToward(vx,vy,omega)
 
-# Enable movements used for filter tests
+# Choose standard movements for filter tests
 zigzag = 0
 square = 0
 straight_line = 0
@@ -19,9 +18,7 @@ turn_around = 0
 move_L = 1
 
 
-
 def main():
-
 	motion_service = session.service("ALMotion")
 	motion_service.setStiffnesses("Body", 1.0)
 
@@ -64,11 +61,7 @@ def main():
 				motion_service.moveTo(1.75, 0, 0)
 				unboard.run_localization = False
 
+			#no movement
 			else:
-				#no movement
 				time.sleep(65)
 				unboard.run_localization = False
-
-			
-
-
