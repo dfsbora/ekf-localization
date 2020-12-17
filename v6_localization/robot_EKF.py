@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
 
+"""Copyright 2020 Débora Ferreira dos Santos
+
+Adapted from Roger R Labbe Jr. FilterPy library.
+http://github.com/rlabbe/filterpy
+
+This is licensed under an MIT license.
+"""
+
 from extended_kalman_filter import ExtendedKalmanFilter as EKF
 from numpy import array, sqrt, dot
 from math import sin, cos, tan, atan, asin, acos, atan2
@@ -365,11 +373,3 @@ class RobotEKF(EKF):
         # M = np.diag([0.0265**2, 0.01567**2, 0.0253**2, 0.0015**2, 0.0031**2, 0.0019**2])
         # VMVT = dot(V,M).dot(V.T)
         # self.P = FPFT  + VMVT 
-
-
-
-
-
-
-
-
