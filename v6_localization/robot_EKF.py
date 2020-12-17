@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from extended_kalman_filter import ExtendedKalmanFilter as EKF
 from numpy import array, sqrt, dot
 from math import sin, cos, tan, atan, asin, acos, atan2
@@ -31,19 +32,16 @@ class RobotEKF(EKF):
 
         self.acc = np.zeros((3, 1))        
         self.gyro = np.zeros((3, 1))
-
-        #self.acc_threshold = 0.1
         self.g = np.array([[0.,0.,9.81]]).T
 
     def angle_from_rotation_matrix(self):
+        """ Get angle around z from rotation matrix
+        """
         pitch1 = -asin(self.x[12][0])
         pitch2 = np.pi - asin(self.x[12][0])
         yaw1 = atan2(self.x[9][0]/cos(pitch1), self.x[6][0]/cos(pitch1))
         yaw2 = atan2(self.x[9][0]/cos(pitch2), self.x[6][0]/cos(pitch2))
-        #logging.debug("yaw1: %s", np.degrees(yaw1))
-        #logging.debug("yaw2: %s", np.degrees(yaw2))
         self.angle = yaw1
-        #logging.debug("yaw: %s", np.degrees(self.angle))
 
     def calibration(self,calibration_time=120):
         """ Perform IMU sensors calibration
@@ -58,14 +56,13 @@ class RobotEKF(EKF):
         self.motion_service.setStiffnesses("Body", 1.0)
         self.motion_service.moveInit()
 
-
         acc_sum = np.array([[0., 0., 0.]]).T
         gyro_sum = np.array([[0., 0., 0.]]).T
 
         i = 0
         initial_time =  time.time()
 
-        # Auxiliar time variable to log calibration status
+        # Auxiliar time variable used to log calibration status
         counter_prev = time.time()
 
         while (time.time() - initial_time) < calibration_time:
@@ -81,7 +78,7 @@ class RobotEKF(EKF):
         acc_bias = acc_sum/i + np.array([[0.,0.,9.81]]).T
         gyro_bias = gyro_sum/i
 
-        self.acc_bias = acc_bias  #TODO retirar gravidade daqui
+        self.acc_bias = acc_bias 
         self.gyro_bias = gyro_bias
 
         logging.debug("Acc bias: %s", acc_bias)
@@ -114,19 +111,15 @@ class RobotEKF(EKF):
         gyro : np.array
             gyroscope reading
         """
-        aux = acc + self.g
-        #logging.debug(np.absolute(aux[0]))
-        #if np.absolute(aux[0]) > self.acc_threshold:
-        #    self.update_bias(acc)
-
-
 
         prev = np.array([[self.x[6][0], self.x[7][0], self.x[8][0]],
             [self.x[9][0], self.x[10][0], self.x[11][0]],
             [self.x[12][0], self.x[13][0], self.x[14][0]]])
+
+        #Project bias to current orientation
         acc_bias = np.dot(prev, self.acc_bias)
 
-        self.acc = acc - acc_bias   #TODO precisa compensar a rotação aqui?
+        self.acc = acc - acc_bias  
         self.gyro = gyro - self.gyro_bias
 
     def h(self, lmark):
@@ -140,45 +133,13 @@ class RobotEKF(EKF):
         hx : 
             state transformed to measurement space
         """
-        #logging.debug("start h")
-        #logging.debug("self.x00: %s", self.x[0][0])
-        #logging.debug("lmark00: %s", lmark[0][0])
-        #dx = lmark[0][0] - self.x[0][0]
-        #dy = lmark[1][0] - self.x[2][0]
         dx = lmark[0][0] - self.x[0][0]
         dy = lmark[1][0] - self.x[2][0]        
-        #logging.debug("dx: %s", dx)
-        #if dx < 0:
-        #    dx = -dx
-        #if dy < 0:
-        #    dy = -dy
-        
-
-        #logging.debug("getting theta")
-        #theta = self.angle
-        #coordinates = np.array([[dx,dy]]).T
-        #logging.debug("coordinates: %s", coordinates)
-        #rotation = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
-
-
 
         coordinates = np.array([[dx,dy]]).T
-        #theta = self.angle
-
         rotation = np.array([[self.x[6][0],self.x[7][0]],[self.x[9][0],self.x[10][0]]])
 
-        
-        #logging.debug("coordinates: %s", coordinates)
-        
-        #rotation = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
-        #logging.debug("before hx")
         hx = dot(rotation,coordinates)
-        #logging.debug("hx %s", hx)
-
-
-        #logging.debug("x in measurement space: %s", hx)
-
-
         return hx
 
     def h_jacobian(self, lmark):
@@ -194,35 +155,19 @@ class RobotEKF(EKF):
             jacobian of h
             
         """
-        
-        #theta = self.angle
-        
-        #H = np.array([[cos(theta),0,-sin(theta),0,0,0],[sin(theta),0,cos(theta),0,0,0]])
 
-
-        #  theta = self.angle
-        
-        # #H = np.array([[cos(theta),0,-sin(theta),0,0,0],[sin(theta),0,cos(theta),0,0,0]])
-        
-        # H = np.zeros((2, 15))
-        # H[0][0] = cos(theta)
-        # H[0][2] = -sin(theta)
-        # H[1][0] = sin(theta)
-        # H[1][2] = cos(theta)
-
+        # Alternative Jacobian calculation. Do not correspond to actual system model.
         H = np.zeros((2, 15))
         H[0][0] = self.x[6][0]
         H[0][2] = self.x[7][0]
         H[1][0] = self.x[9][0]
         H[1][2] = self.x[10][0]
-        
         H =  -H
-        #logging.debug("H jacobian: %s", H)
 
         return H
 
     def residual(self, a, b):
-        """ Calculate residual and force the angle to be in range [0, 2 pi)
+        """ Calculate residual
 
         Parameters
         ----------
@@ -237,9 +182,8 @@ class RobotEKF(EKF):
             residual
         """
 
+        #Note that if working with angles, range should be forced to be in range [0, 2 pi)
         y = (a - b)
-
-        #logging.debug("Residual: %s", y)
         return y
 
     def update(self, z, lmark_real_pos=None, R=None):
@@ -307,20 +251,15 @@ class RobotEKF(EKF):
          
         #Calculate Kalman Gain
         PHT = dot(self.P, H.T)
-        
 
         self.S = dot(H, PHT) + R
         self.SI = linalg.inv(self.S)
         self.K = PHT.dot(self.SI)
 
-        #logging.debug("Kalman gain: %s", self.K)
-
         #Calculate residual using defined residual function
         hx = self.h(lmark_real_pos)
-        #logging.debug("hx: %s", hx)
         self.y = self.residual(z, hx)
         self.x = self.x + dot(self.K, self.y)
-        #logging.debug("self.x %s", self.x)
 
         # P = (I-KH)P(I-KH)' + KRK' is more numerically stable
         # and works for non-optimal K vs the equation
@@ -334,9 +273,6 @@ class RobotEKF(EKF):
         self.x_post = self.x.copy()
         self.P_post = self.P.copy()
 
-    #def update_bias(self, acc):
-    #    self.acc_bias = self.acc_bias + 0.01 * (acc - self.acc_bias)
-
     def f(self, u, dt):
         """ Calculates x from previous x and current u
 
@@ -345,16 +281,13 @@ class RobotEKF(EKF):
         u : 
             
         """
-        g = np.array([[0.,0.,9.81]]).T
 
         prev = np.array([[self.x[6][0], self.x[7][0], self.x[8][0]],
             [self.x[9][0], self.x[10][0], self.x[11][0]],
             [self.x[12][0], self.x[13][0], self.x[14][0]]])
 
-
         pos = np.array([[self.x[0][0],self.x[2][0],self.x[4][0]]]).T
         vel = np.array([[self.x[1][0],self.x[3][0],self.x[5][0]]]).T
-
 
         acc = np.array([[u[0][0],u[1][0],u[2][0]]]).T
         
@@ -362,7 +295,6 @@ class RobotEKF(EKF):
 
         sigma = norm(dt)*norm(ang_vel)
         
-
         if sigma == 0:
             update_factor = 1
         else:
@@ -371,23 +303,12 @@ class RobotEKF(EKF):
 
         rot = np.dot(prev,update_factor)
 
-
-        #if np.absolute(acc) + g > self.acc_threshold:
-        #    update_bias(acc)
-
-
         acc = np.dot(prev,acc)
-        #logging.debug(acc)
-        acc = acc + g
-        #logging.debug(acc)
-        #acc = np.matmul(rot, acc)
+        acc = acc + self.g
         pos = pos + dt*vel
         vel = vel + dt*acc
-        
-
 
         self.x = np.array([[pos[0][0], vel[0][0], pos[1][0], vel[1][0], pos[2][0], vel[2][0], rot[0][0], rot[0][1], rot[0][2], rot[1][0], rot[1][1], rot[1][2], rot[2][0], rot[2][1], rot[2][2]]]).T
-        #print(self.x[9][0])
 
     def f_jacobian(self, dt):
         """ Compute jacobian F (df/dx)
@@ -396,18 +317,13 @@ class RobotEKF(EKF):
         ----------
         dt : int
 
-        """    
+        """
+
+        # Alternative Jacobian calculation. Do not correspond to actual system model.    
         F = np.eye(self.dim_x)
         F[0][1] = dt
         F[2][3] = dt
         F[4][5] = dt
-        # F = np.array(
-        #     [[1, dt, 0, 0, 0, 0],
-        #      [0, 1, 0, 0, 0, 0],
-        #      [0, 0, 1, dt, 0, 0],
-        #      [0, 0, 0, 1, 0, 0],
-        #      [0, 0, 0, 0, 1, dt],
-        #      [0, 0, 0, 0, 0, 1]])
 
         return F
 
@@ -418,27 +334,20 @@ class RobotEKF(EKF):
         ----------
         dt : int
 
+        prev: np.array
+            previous rotation matrix
+
         """    
 
+        # Alternative Jacobian calculation. Do not correspond to actual system model.    
         V = np.zeros((15,6))
-
         V[1,0:3] = prev[0]*dt
         V[3,0:3] = prev[1]*dt
         V[5,0:3] = prev[2]*dt
-        #V[6:15, 3:6] = prev
-
-        # V = np.array(
-        #     [[cos(theta)*0.5*dt**2, -sin(theta)*0.5*dt**2, 0],
-        #      [cos(theta)*dt, -sin(theta)*dt, 0],
-        #      [sin(theta)*0.5*dt**2, cos(theta)*0.5*dt**2, 0],
-        #      [sin(theta)*dt, cos(theta)*dt, 0],
-        #      [0, 0, 0],
-        #      [0, 0, 1]])
 
         return V
 
     def predict(self, u,dt):
-        #theta = self.x[4]
         self.f(u, dt)
 
         prev = np.array([[self.x[6][0], self.x[7][0], self.x[8][0]],
@@ -446,12 +355,21 @@ class RobotEKF(EKF):
             [self.x[12][0], self.x[13][0], self.x[14][0]]])
 
         F = self.f_jacobian(dt)
-        #V = self.v_jacobian(dt, prev)
-
-        # covariance of motion noise in control space
-        #M = np.diag([0.0265**2, 0.01567**2, 0.0253**2, 0.0015**2, 0.0031**2, 0.0019**2])
-
-        #VMVT = dot(V,M).dot(V.T)
         FPFT = dot(F,self.P).dot(F.T)
-        self.P = FPFT  +self.Q #+ VMVT #
+
+        self.P = FPFT  + self.Q 
+
+        # Note that if considering the noise in control, previous line should be something like:
+        # V = self.v_jacobian(dt, prev)
+        # covariance of motion noise in control space
+        # M = np.diag([0.0265**2, 0.01567**2, 0.0253**2, 0.0015**2, 0.0031**2, 0.0019**2])
+        # VMVT = dot(V,M).dot(V.T)
+        # self.P = FPFT  + VMVT 
+
+
+
+
+
+
+
 
