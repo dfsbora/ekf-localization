@@ -1,29 +1,33 @@
 #!/usr/bin/env python
 
+"""2020 Débora Ferreira dos Santos
+
+Adapted from UnBeatables
+"""
+
 import qi
 import argparse
 import sys
 import os
 import threading
 
-
 import logging
 logging.basicConfig(level=logging.NOTSET)
 
 
-# Adding localization code modules to library path
+# Adding code modules to library path
 sys.path.append(os.path.join(sys.path[0], 'v6_action'))
 sys.path.append(os.path.join(sys.path[0], 'v6_localization'))
 sys.path.append(os.path.join(sys.path[0], 'v6_perception'))
 
 
-# Importing localization code modules
+# Importing code modules
 import action
 import localization
 import landmark_detector
 
 
-# Connect to session
+# Connect to qi Session
 session = qi.Session()
 try:
     session.connect("tcp://nao.local:9559") 
@@ -36,7 +40,6 @@ except RuntimeError:
 action.session = session
 localization.session = session
 landmark_detector.session = session
-
 
 
 try:
@@ -58,4 +61,3 @@ try:
 
 except:
     sys.exit(1)
-
