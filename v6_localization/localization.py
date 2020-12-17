@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+
+"""Copyright 2020 Débora Ferreira dos Santos
+
+This is licensed under an MIT license.
+"""
+
 from robot_EKF import RobotEKF
 from numpy.linalg import norm
 from math import cos, acos
