@@ -2,10 +2,21 @@
 <p align="center">Implementation of localization system for robot soccer based on inertial sensors</p>
 
 
-## Pre-requisites
-[Numpy](https://numpy.org/)
+<p align="center">
+  <img alt="GitHub" src="https://img.shields.io/github/license/dfsbora/ekf-localization">
+</p>
 
-[Scipy](https://www.scipy.org/)
+
+## Pre-requisites
+Developed on Python 2.7
+
+🤖 NAO robot must meet the following pre-requisites:
+
+* NAOqi (Verified with 2.8.5.10)
+
+* [Numpy](https://numpy.org/) (Verified with 1.10.4)
+
+* [Scipy](https://www.scipy.org/) (Verified with v1.2.3)
 
 
 
@@ -37,5 +48,8 @@ $ python threads.py
 ```
 
 
+## License
 
+This project is under the license [MIT](./LICENSE).
 
+Made by Débora Ferreira. 🤖💚
