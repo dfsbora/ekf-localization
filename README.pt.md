@@ -6,6 +6,7 @@
   <img alt="GitHub" src="https://img.shields.io/github/license/dfsbora/ekf-localization">
 </p>
 
+[English version](README.md)
 
 ## Requisitos
 Desenvolvido em Python 2.7
