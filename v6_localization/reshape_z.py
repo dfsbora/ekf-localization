@@ -1,3 +1,19 @@
+# -*- coding: utf-8 -*-
+#pylint: disable=invalid-name, bare-except
+
+"""Copyright 2015 Roger R Labbe Jr.
+FilterPy library.
+http://github.com/rlabbe/filterpy
+
+Documentation at:
+https://filterpy.readthedocs.org
+
+Supporting book at:
+https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python
+
+This is licensed under an MIT license.
+"""
+
 import numpy as np
 
 def reshape_z(z, dim_z, ndim):
