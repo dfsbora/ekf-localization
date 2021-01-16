@@ -47,6 +47,9 @@ $ cd naoqi/ekf-localization
 $ python threads.py
 
 ```
+## Relatório
+
+Este repositório faz parte do trabalho de conclusão de curso cujo relatório pode ser lido [aqui.](2020_DeboraFerreiraDosSantos.pdf)
 
 
 ## Licença
