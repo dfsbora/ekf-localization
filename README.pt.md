@@ -50,6 +50,7 @@ $ python threads.py
 ## Relatório
 
 Este repositório faz parte do trabalho de conclusão de curso cujo relatório pode ser lido [aqui.](2020_DeboraFerreiraDosSantos.pdf)
+A versão correspondente ao relatório é a v1.0.0.
 
 
 ## Licença
